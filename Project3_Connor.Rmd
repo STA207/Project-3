@@ -1,0 +1,83 @@
+---
+title: "Project3"
+author: "Rongkui Han"
+date: "2/6/2020"
+output:
+  bookdown::pdf_document2: default
+  toc: no
+---
+
+```{r}
+library(AER)
+library(sqldf)
+library(kableExtra)
+library(knitr)
+library(latexpdf)
+```
+
+
+Make suggestions to policymakers to take certain measures by discovering variables that caused the reduction or increase of traffic fatalities.    
+
+```{r}
+
+data("Fatalities")
+data = Fatalities
+head(data)
+
+```
+
+
+*Question:* Which factor variables change across time within each state?
+
+```{r}
+factorchange = sqldf("SELECT state, year, breath, jail, service FROM data")
+
+factorchange_table = data.frame(State = c("CO","CT","IL","IN","IA","KS","KY","LA","MS","NV","NH","OH","OR","UT"),
+                                Breath = c("1982-1983","NA","1986 - 1987","1983-1984","1982-1983","1985-1986","1983-1984","1982-1983","1982-1983","NA","1982-1983","NA","NA","NA"),
+                                Jail = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","1982-1983 & 1986 - 1987","1983-1984","1982-1983"),
+                                Service = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","NA","1983-1984","1982-1983")
+                                )
+
+kable(factorchange_table)
+```
+
+
+
+```{r}
+library(ggplot2)
+
+data = data[complete.cases(data),]
+dim(data)
+ggplot(data, aes(x = jail, y = fatal)) +
+  geom_boxplot()
+
+
+```
+
+```{r}
+data['fr'] = data$fatal/data$pop*10000
+
+ggplot(data, aes(x = jail, y = fr)) +
+  geom_boxplot()
+
+```
+
+
+```{r}
+ggplot(data, aes(x = drinkage, y = fr)) +
+  geom_point()
+```
+
+
+1. Explore this dataset and generate summary statistics (in forms of tables or plots) that you find crucial for your own interest, or for convincing the policymakers.
+
+2. Consider only the full dataset from 1982 to 1988, propose a regression model to study whether having a mandatory jail sentence is associated with reduced traffic fatalities. In particular, you need to
+- specify your model,
+- state the assumptions required,
+- fit the model with appropriate methods,
+- conduct model diagnostics and/or sensitivity analysis,
+- and discuss causal interpretation of the proposed models.
+
+3. Conclude your analysis results. You may want to test a hypothesis, construct a confidence interval, or draw a confidence band.
+
+4. Explain the implications of your results to policymakers who know little about statistics. Make suggestions if you want to.
