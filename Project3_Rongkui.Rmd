@@ -1,0 +1,57 @@
+---
+title: "Project3"
+author: "Rongkui Han"
+date: "2/6/2020"
+output:
+  bookdown::pdf_document2:
+    toc: FALSE
+---
+
+Make suggestions to policymakers to take certain measures by discovering variables that caused the reduction or increase of traffic fatalities.    
+
+```{r}
+library(AER)
+data("Fatalities")
+data = Fatalities
+head(data)
+```
+
+
+```{r}
+library(ggplot2)
+
+data = data[complete.cases(data),]
+dim(data)
+ggplot(data, aes(x = jail, y = fatal)) +
+  geom_boxplot()
+
+
+```
+
+```{r}
+data['fr'] = data$fatal/data$pop*10000
+
+ggplot(data, aes(x = jail, y = fr)) +
+  geom_boxplot()
+
+```
+
+
+```{r}
+ggplot(data, aes(x = drinkage, y = fr)) +
+  geom_point()
+```
+
+
+1. Explore this dataset and generate summary statistics (in forms of tables or plots) that you find crucial for your own interest, or for convincing the policymakers.
+
+2. Consider only the full dataset from 1982 to 1988, propose a regression model to study whether having a mandatory jail sentence is associated with reduced traffic fatalities. In particular, you need to
+- specify your model,
+- state the assumptions required,
+- fit the model with appropriate methods,
+- conduct model diagnostics and/or sensitivity analysis,
+- and discuss causal interpretation of the proposed models.
+
+3. Conclude your analysis results. You may want to test a hypothesis, construct a confidence interval, or draw a confidence band.
+
+4. Explain the implications of your results to policymakers who know little about statistics. Make suggestions if you want to.
