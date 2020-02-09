@@ -13,6 +13,8 @@ library(sqldf)
 library(kableExtra)
 library(knitr)
 library(latexpdf)
+library(ggplot2)
+
 ```
 
 
@@ -22,7 +24,6 @@ Make suggestions to policymakers to take certain measures by discovering variabl
 
 data("Fatalities")
 data = Fatalities
-head(data)
 
 ```
 
@@ -30,11 +31,9 @@ head(data)
 *Question:* Which factor variables change across time within each state?
 
 ```{r}
-factorchange = sqldf("SELECT state, year, breath, jail, service FROM data")
-
 factorchange_table = data.frame(State = c("CO","CT","IL","IN","IA","KS","KY","LA","MS","NV","NH","OH","OR","UT"),
-                                Breath = c("1982-1983","NA","1986 - 1987","1983-1984","1982-1983","1985-1986","1983-1984","1982-1983","1982-1983","NA","1982-1983","NA","NA","NA"),
-                                Jail = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","1982-1983 & 1986 - 1987","1983-1984","1982-1983"),
+                                Breath = c("1982-1983","NA","1986-1987","1983-1984","1982-1983","1985-1986","1983-1984","1982-1983","1982-1983","NA","1982-1983","NA","NA","NA"),
+                                Jail = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","1982-1983 & 1986-1987","1983-1984","1982-1983"),
                                 Service = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","NA","1983-1984","1982-1983")
                                 )
 
@@ -42,9 +41,19 @@ kable(factorchange_table)
 ```
 
 
+```{r}
+
+factorpercent_table = data.frame(Year = c("1982","1983","1984","1985","1986","1987","1988"),
+                                 Breath = c("37.5%","45.8%","45.8%","45.8%","47.9%","50.0%","50.0%"),
+                                 Jail = c("18.8%","27.0%","29.2%","31.3","31.3%","29.2%","29.2%"),
+                                 Service = c("10.4%","16.7%","18.8%","20.8%","20.8%","20.8%","20.8%"))
+kable(factorpercent_table)
+
+```
+
+
 
 ```{r}
-library(ggplot2)
 
 data = data[complete.cases(data),]
 dim(data)
@@ -73,7 +82,20 @@ ggplot(data, aes(x = drinkage, y = fr)) +
 
 2. Consider only the full dataset from 1982 to 1988, propose a regression model to study whether having a mandatory jail sentence is associated with reduced traffic fatalities. In particular, you need to
 - specify your model,
+
+*Longitudinal Analysis Model*
+$$Y_{i,T} = \beta_1X_{1,i,T} + ... +\beta_kX_{k,i,T} + \alpha_i + \lambda_T + \epsilon_{i,T}$$
+$\alpha$ is the fixed effect due to each state - binary
+$\lambda$ is the fixed effect due to each time period - biary or continuous
+$\beta_kX_{k,i,T}$ is the effect of the various dependent variables
+
 - state the assumptions required,
+
+1) Residuals are IID, have mean zero & constant variance.
+2) No large outliters
+3) No multicolinearity
+
+
 - fit the model with appropriate methods,
 - conduct model diagnostics and/or sensitivity analysis,
 - and discuss causal interpretation of the proposed models.
@@ -81,3 +103,6 @@ ggplot(data, aes(x = drinkage, y = fr)) +
 3. Conclude your analysis results. You may want to test a hypothesis, construct a confidence interval, or draw a confidence band.
 
 4. Explain the implications of your results to policymakers who know little about statistics. Make suggestions if you want to.
+
+
+
