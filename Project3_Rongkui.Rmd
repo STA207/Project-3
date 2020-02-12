@@ -187,21 +187,74 @@ mean(data$fr[data$jail == 1]) - mean(data$fr[data$jail == 0])
 ```
 
 
-1. Explore this dataset and generate summary statistics (in forms of tables or plots) that you find crucial for your own interest, or for convincing the policymakers.
+***
 
-2. Consider only the full dataset from 1982 to 1988, propose a regression model to study whether having a mandatory jail sentence is associated with reduced traffic fatalities. In particular, you need to
-- specify your model,
-- state the assumptions required,
-- fit the model with appropriate methods,
-- conduct model diagnostics and/or sensitivity analysis,
-- and discuss causal interpretation of the proposed models.
+### Team ID: Team 6
 
-3. Conclude your analysis results. You may want to test a hypothesis, construct a confidence interval, or draw a confidence band.
+#### NAME: Connor Rosenberg
+#### NAME: Rongkui Han
+#### NAME: Yuqing Yang
+#### NAME: Nassim Ali-Chaouche
 
-4. Explain the implications of your results to policymakers who know little about statistics. Make suggestions if you want to.
+***
+
+## 1.0 Introduction
 
 
-```{r}
-?Fatalities
-```
+#### 1.1 Background
+
+The "Fatalities" data set contains data pertinent to US traffic fatalities from the years 1982 to 1988. The data set includes panel data for 48 states (data from Alaska and Hawaii are not included). The variables involved in the study include income per capita, a beer tax, a mandatory jail sentence for an initial drunk driving conviction, population, and the number of vehicle fatalites. The observations were recorded for each state annually. In total, there are 336 observations recorded for 34 distinct variables. The data was obtained from sources such as the US Department of Transportation Fatal Accident Reporting System and the US Bureau of Labor Statistics. 
+
+Due to the observational nature of the data, obtaining causal effects may pose to be a challenge. In this report, we will attempt to discover if there is a causal relationship between having a mandatory jail sentence for an initial drunk driving conviction and the number of traffic fatalities. In particular, we will study if a mandatory jail sentence is related to having a lower number of traffic fatalites. 
+
+#### 1.2 Questions of Interest
+
+         
+
+## 2.0 Analysis Plan
+
+The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates. From data collected by the National Highway Traffic Safety Administration's Fatal Accident Reporting Sys-tem (FARS), we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.
+
+#### 2.1 Population and study design
+
+
+
+#### 2.2 Descriptive Analysis   
+
+
+
+#### 2.3 Propensity Score Analysis
+
+##### 2.3.1 Generate the Propensity Score
+
+##### 2.3.2 Maching
+
+##### 2.3.3 Estimate Treatment Effect
+
+
+
+
+
+
+#### 2.4 Model Diagnostics
+
+
+## 3.0 Results
+
+
+#### 3.1 Descriptive Analysis     
+
+#### 3.2 Main Analysis
+
+#### 3.3 Model Diagnostics
+
+
+#### 3.4 Causal Effects
+
+
+
+## 4.0 Discussion
+
+
+## 5.0 Reference
 
