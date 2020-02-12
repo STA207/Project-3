@@ -22,3 +22,13 @@ data(Fatalities)
 ?Fatalities
 ```
 
+```{r}
+View(Fatalities)
+```
+
+
+1.1 Background
+
+The "Fatalities" data set contains data pertinent to US traffic fatalities from the years 1982 to 1988. The data set includes panel data for 48 states (data from Alaska and Hawaii are not included). The variables involved in the study include income per capita, a beer tax, a mandatory jail sentence for an initial drunk driving conviction, population, and the number of vehicle fatalites. The observations were recorded for each state annually. In total, there are 336 observations recorded for 34 distinct variables. The data was obtained from sources such as the US Department of Transportation Fatal Accident Reporting System and the US Bureau of Labor Statistics. 
+
+Due to the observational nature of the data, obtaining causal effects may pose to be a challenge. In this report, we will attempt to discover if there is a causal relationship between having a mandatory jail sentence for an initial drunk driving conviction and the number of traffic fatalities. In particular, we will study if a mandatory jail sentence is related to having a lower number of traffic fatalites. 
