@@ -10,7 +10,6 @@ output:
 Make suggestions to policymakers to take certain measures by discovering variables that caused the reduction or increase of traffic fatalities.    
 
 ```{r}
-
 ggplot(data, aes(x = drinkage, y = fr)) +
   geom_point()
 ```
@@ -26,9 +25,14 @@ library(ggplot2)
 library(AER)
 data("Fatalities")
 data = Fatalities
-head(data)
-data = data[complete.cases(data),]
-dim(data)
+
+#Impute values for missing CA data
+data[28,15] = as.factor("no")
+data[28,16] = as.factor("no")
+
+
+#head(data)
+#dim(data)
 data['fr'] = data$fatal/data$pop*10000
 ```
 
@@ -45,8 +49,8 @@ summary(m_ps)
 ```{r}
 prs_df = data.frame(pr_score = predict(m_ps, type = "response"),
                     jail = m_ps$model$jail)
-head(prs_df)
-dim(prs_df)
+#head(prs_df)
+#dim(prs_df)
 ```
 
 #### Examining the region of common support
@@ -76,7 +80,7 @@ data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "m
 mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, method = "nearest", data = data)
 
 dta_m = match.data(mod_match)
-dim(dta_m)
+#dim(dta_m)
 ```
 
 ## Examining covariate balance in the matched sample    
