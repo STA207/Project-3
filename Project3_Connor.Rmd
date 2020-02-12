@@ -1,3 +1,4 @@
+
 ---
 title: "Project3"
 author: "Rongkui Han"
@@ -9,100 +10,82 @@ output:
 
 ```{r}
 library(AER)
-library(sqldf)
 library(kableExtra)
 library(knitr)
 library(latexpdf)
 library(ggplot2)
+library(dplyr)
 
 ```
 
-
-Make suggestions to policymakers to take certain measures by discovering variables that caused the reduction or increase of traffic fatalities.    
-
 ```{r}
-
 data("Fatalities")
 data = Fatalities
 
+data = mutate(data, yearpast = (as.numeric(data$year))-1)
+data = mutate(data, fatalratio = (fatal/pop)*100)
+
+#Impute values for missing CA data
+data[28,15] = as.factor("no")
+data[28,16] = as.factor("no")
 ```
 
 
-*Question:* Which factor variables change across time within each state?
+***
 
-```{r}
-factorchange_table = data.frame(State = c("CO","CT","IL","IN","IA","KS","KY","LA","MS","NV","NH","OH","OR","UT"),
-                                Breath = c("1982-1983","NA","1986-1987","1983-1984","1982-1983","1985-1986","1983-1984","1982-1983","1982-1983","NA","1982-1983","NA","NA","NA"),
-                                Jail = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","1982-1983 & 1986-1987","1983-1984","1982-1983"),
-                                Service = c("NA","1984-1985","NA","NA","NA","NA","NA","NA","NA","1982-1983","NA","NA","1983-1984","1982-1983")
-                                )
+### Team ID: Team 6
 
-kable(factorchange_table)
-```
+#### NAME: Connor Rosenberg
+#### NAME: Rongkui Han
+#### NAME: Yuqing Yang
+#### NAME: Nassim Ali-Chaouche
 
+***
 
-```{r}
-
-factorpercent_table = data.frame(Year = c("1982","1983","1984","1985","1986","1987","1988"),
-                                 Breath = c("37.5%","45.8%","45.8%","45.8%","47.9%","50.0%","50.0%"),
-                                 Jail = c("18.8%","27.0%","29.2%","31.3","31.3%","29.2%","29.2%"),
-                                 Service = c("10.4%","16.7%","18.8%","20.8%","20.8%","20.8%","20.8%"))
-kable(factorpercent_table)
-
-```
+## 1.0 Introduction
 
 
+#### 1.1 Background
 
-```{r}
+#### 1.2 Questions of Interest
 
-data = data[complete.cases(data),]
-dim(data)
-ggplot(data, aes(x = jail, y = fatal)) +
-  geom_boxplot()
+         
 
-
-```
-
-```{r}
-data['fr'] = data$fatal/data$pop*10000
-
-ggplot(data, aes(x = jail, y = fr)) +
-  geom_boxplot()
-
-```
+## 2.0 Analysis Plan
 
 
-```{r}
-ggplot(data, aes(x = drinkage, y = fr)) +
-  geom_point()
-```
+#### 2.1 Population and study design
+
+#### 2.2 Statistical Analysis   
+
+##### 2.2.1 Descriptive Analysis   
 
 
-1. Explore this dataset and generate summary statistics (in forms of tables or plots) that you find crucial for your own interest, or for convincing the policymakers.
 
-2. Consider only the full dataset from 1982 to 1988, propose a regression model to study whether having a mandatory jail sentence is associated with reduced traffic fatalities. In particular, you need to
-- specify your model,
-
-*Longitudinal Analysis Model*
-$$Y_{i,T} = \beta_1X_{1,i,T} + ... +\beta_kX_{k,i,T} + \alpha_i + \lambda_T + \epsilon_{i,T}$$
-$\alpha$ is the fixed effect due to each state - binary
-$\lambda$ is the fixed effect due to each time period - biary or continuous
-$\beta_kX_{k,i,T}$ is the effect of the various dependent variables
-
-- state the assumptions required,
-
-1) Residuals are IID, have mean zero & constant variance.
-2) No large outliters
-3) No multicolinearity
+##### 2.2.2 Main Analysis
 
 
-- fit the model with appropriate methods,
-- conduct model diagnostics and/or sensitivity analysis,
-- and discuss causal interpretation of the proposed models.
+#### 2.3 Model Diagnostics
 
-3. Conclude your analysis results. You may want to test a hypothesis, construct a confidence interval, or draw a confidence band.
 
-4. Explain the implications of your results to policymakers who know little about statistics. Make suggestions if you want to.
+## 3.0 Results
+
+
+#### 3.1 Descriptive Analysis     
+
+#### 3.2 Main Analysis
+
+#### 3.3 Model Diagnostics
+
+
+#### 3.4 Causal Effects
+
+
+
+## 4.0 Discussion
+
+
+## 5.0 Reference
 
 
 
