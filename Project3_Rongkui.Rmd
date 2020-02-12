@@ -231,8 +231,9 @@ Due to the observational nature of the data, obtaining causal effects may pose t
 The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates. From data collected by the National Highway Traffic Safety Administration's Fatal Accident Reporting System (FARS), we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.
 
 #### 2.1 Population and study design
+check if time compente is independtneneed to check that time is independent within each state. 
 
-
+remove states that changed policies and do a linear regression w/ time to see if it effects the fatality rate.
 
 #### 2.2 Descriptive Analysis   
 spagetti plot
