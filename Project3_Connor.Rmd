@@ -15,6 +15,7 @@ library(knitr)
 library(latexpdf)
 library(ggplot2)
 library(dplyr)
+library(lme4)
 
 ```
 
@@ -23,11 +24,19 @@ data("Fatalities")
 data = Fatalities
 
 data = mutate(data, yearpast = (as.numeric(data$year))-1)
-data = mutate(data, fatalratio = (fatal/pop)*100)
+data = mutate(data, fatalratio = (fatal/pop)*10000)
 
 #Impute values for missing CA data
 data[28,15] = as.factor("no")
 data[28,16] = as.factor("no")
+
+
+boxplot(data$fatalratio ~data$jail)
+
+library(sqldf)
+
+sqldf("SELECT sum(fatalratio)/count(fatalratio) from data WHERE jail == 'no'") -sqldf("SELECT sum(fatalratio)/count(fatalratio) from data WHERE jail == 'yes'")
+
 ```
 
 
@@ -53,19 +62,32 @@ data[28,16] = as.factor("no")
 
 ## 2.0 Analysis Plan
 
+The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates. From data collected by the National Highway Traffic Safety Administration's Fatal Accident Reporting Sys-tem (FARS), we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.
 
 #### 2.1 Population and study design
+This analysis "uses data from the 48 contiguous states (excluding Alaska, Hawaii, and the District of Columbia)" between the years 1982 and 1988. Our response variable, Fatality Rate, is defined as the total number of automobile fatalities per Capita and is the primary measure of how effectively mandatory jail sentences reduce fatal automobile collisions across the United States. The full list of inlcuded variables can be viewed in Table 1, located in the appendix. 
 
-#### 2.2 Statistical Analysis   
-
-##### 2.2.1 Descriptive Analysis   
-
+It is important to note that the data is purely observational. The observational nature of the data provides added challenges in our search for average causal effects. Since we have no control over when, or if, individual States implement a required jail sentence, we are left to parse out causal effects from a complex and intercorrelated dataset.
 
 
-##### 2.2.2 Main Analysis
+#### 2.2 Descriptive Analysis   
 
 
-#### 2.3 Model Diagnostics
+
+#### 2.3 Propensity Score Analysis
+
+##### 2.3.1 Generate the Propensity Score
+
+##### 2.3.2 Maching
+
+##### 2.3.3 Estimate Treatment Effect
+
+
+
+
+
+
+#### 2.4 Model Diagnostics
 
 
 ## 3.0 Results
@@ -87,5 +109,9 @@ data[28,16] = as.factor("no")
 
 ## 5.0 Reference
 
+```{r}
+fit <- lmer(data$fatalratio ~ data$jail + (1 | data$state) + data$spirits+ data$beertax + data$drinkage , data = data)
+summary(fit)
+```
 
 
