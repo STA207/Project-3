@@ -50,8 +50,6 @@ First, we found out there is one missing value in the data set, which is the var
 Then, we explore the distribution of fatalities rate for all the observations. Plot \@ref(fig:fatal)(b) shows that overall, observations that had the mandatory jail sentence had a higher fatality rate than observations that did not have the mandatory jail sentence had a higher fatality rate, but the difference in medians is not significant. Plot \@ref(fig:fatal)(c) shows that distributions of fatalities rate for different years are roughly the same. 
 
 
-
-
 ```{r fatal, fig.cap="(a) Fatality rate for states that changed their policy in the mandatory jail sentence from 1982 to 1988 (b) Boxplot of the fatality rate for different policies in the mandatory jail sentence (c) Boxplot of the fatality rate for different years"}
 library("AER")
 library(tidyverse)
