@@ -110,5 +110,6 @@ d1[d1$state == "ca" & d1$year == "1988",]$jail = 0
 f = pwfe(~ jail + spirits + unemp + income + beertax + drinkage + dry + youngdrivers + miles + breath + pop + gsp , data = d1, treat = "jail", outcome = "fatal_rate", unit.index = "state", time.index = "year", method = "unit", within.unit = TRUE, qoi = "ate", hetero.se=TRUE, auto.se=TRUE)
 
 summary(f)
+
 ```
 

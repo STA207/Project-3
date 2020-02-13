@@ -101,6 +101,46 @@ plot3 <- data %>%
 grid.arrange(plot1, arrangeGrob(plot2, plot3, ncol = 2), ncol = 1, heights = c(.4/4, .3/4))
 ```
 
+```{r}
+library(MatchIt)
+
+data = Fatalities
+
+#Impute values for missing CA data
+data[28,15] = as.factor("no")
+data[28,16] = as.factor("no")
+
+data['fr'] = data$fatal/data$pop*10000
+data$jail = ifelse(data$jail == 'yes', 1, 0)
+data$service = ifelse(data$service == 'yes', 1, 0)
+data$breath = ifelse(data$breath == 'yes', 1, 0)
+
+m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, family = binomial(), data = data)
+summary(m_ps)
+
+data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "service" , "pop" , "gsp")
+
+mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, method = "optimal", data = data)
+
+dta_m = match.data(mod_match)
+
+dta_m$year = as.numeric(dta_m$year)
+dta_yes = dta_m[dta_m$jail == 1,]
+dta_no = dta_m[dta_m$jail == 0,]
+
+Y = dta_yes$fr - dta_no$fr
+X_1 = dta_yes %>% 
+  select("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "service" , "pop" , "gsp")
+X_0 = dta_no%>% 
+  select("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "service" , "pop" , "gsp")
+X = X_1 - X_0
+X = as.matrix(X)
+
+summary(lm(Y~X))
+summary(lm(Y~X[,2:15]))
+
+# intercept -> ATE
+```
 
 
 
