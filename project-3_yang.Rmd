@@ -25,7 +25,6 @@ library("AER")
 library(tidyverse)
 data(Fatalities)
 
-knitr::kable(Fatalities[!complete.cases(Fatalities),])
 ```
 
 # an ugly plot for all states
@@ -74,6 +73,32 @@ data %>%
 
 jail = 1? jail = 0?
 
+Treatment selection may be confounded with patient characteristics related to the outcome. 
+
+```{r}
+library(maps)
+library(ggplot2)
+library(openintro)
+
+states_map <- map_data("state") %>% 
+  mutate(state = str_to_lower(state2abbr(region)))
+
+data_2 <- data %>% 
+  left_join(states_map, by="state")
+
+data_2 %>% 
+  ggplot(aes(long, lat, group = group))+
+  geom_polygon(aes(fill = jail, frame = year), color = "white")+
+  scale_fill_viridis_d()+
+  facet_wrap(~year)
+
+data_2 %>% 
+  ggplot(aes(long, lat, group = group))+
+  geom_polygon(aes(fill = fatal_rate, frame = year), color = "white")+
+  scale_fill_viridis_c()+
+  facet_wrap(~year)
+```
+
 # model
 ```{r}
 library(wfe)
@@ -82,9 +107,11 @@ data$jail <- data$jail %>%
   fct_recode(
     "1"="yes",
     "0"="no"
-  )
+  ) %>% 
+  as.numeric()
 
-f = wfe(fatal_rate ~ jail+beertax+unemp, data = data, treat = "jail", unit.index = "state", time.index = "year",
-    method = "unit", qoi = "ate", hetero.se=TRUE, auto.se=TRUE, White = TRUE, White.alpha = 0.05)
+
+f = pwfe(~ jail+beertax+unemp, data = data, treat = "jail", outcome = "fatal_rate", unit.index = "state", time.index = "year",
+    method = "unit", within.unit = TRUE, qoi = "ate", hetero.se=TRUE, auto.se=TRUE)
 ```
 

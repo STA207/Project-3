@@ -5,6 +5,14 @@ output:
     toc: no
 ---
 
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 18px;
+  }
+
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
 ```
@@ -90,7 +98,7 @@ plot3 <- data %>%
   panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   labs(y = "Fatality Rate", x = "Year")
 
-grid.arrange(plot1, arrangeGrob(plot2, plot3, ncol = 2), ncol = 1, heights = c(.6/4, .6/4))
+grid.arrange(plot1, arrangeGrob(plot2, plot3, ncol = 2), ncol = 1, heights = c(.4/4, .3/4))
 ```
 
 
