@@ -7,13 +7,6 @@ output:
     toc: FALSE
 ---
 
-Make suggestions to policymakers to take certain measures by discovering variables that caused the reduction or increase of traffic fatalities.    
-
-```{r}
-ggplot(data, aes(x = drinkage, y = fr)) +
-  geom_point()
-```
-
 ## Propensity Score matching
 ```{r}
 library(MatchIt)
@@ -46,6 +39,8 @@ data$jail = ifelse(data$jail == 'yes', 1, 0)
 m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, family = binomial(), data = data)
 summary(m_ps)
 ```
+
+
 
 ```{r}
 prs_df = data.frame(pr_score = predict(m_ps, type = "response"),
@@ -189,6 +184,12 @@ mean(data$fr[data$jail == 1]) - mean(data$fr[data$jail == 0])
 
 
 ```{r}
+plot(dta_m$year)
+plot(data$year)
+```
+
+
+```{r}
 #What about if we inlcude state in the linear regression model
 
 #Fixed
@@ -218,17 +219,20 @@ summary(fit2)
 
 #### 1.1 Background
 
-The "Fatalities" data set contains data pertinent to US traffic fatalities from the years 1982 to 1988. The data set includes panel data for 48 states (data from Alaska and Hawaii are not included). The variables involved in the study include income per capita, a beer tax, a mandatory jail sentence for an initial drunk driving conviction, population, and the number of vehicle fatalities. The observations were recorded for each state annually. In total, there are 336 observations recorded for 34 distinct variables. The data was obtained from sources such as the US Department of Transportation Fatal Accident Reporting System and the US Bureau of Labor Statistics. 
+Traffic accidents cause thousands of deaths in the United States every year. Data pertinent to US traffic fatalities from the years 1982 to 1988 can be easily accessed in the "Fatalities" dataset. The data was obtained from sources such as the US Department of Transportation Fatal Accident Reporting System (FARS) and the US Bureau of Labor Statistics. The dataset includes panel data for 48 states (Alaska and Hawaii not included), containing demographic variables such as population, income per capita, religious belief, and unemployment rate. In addition, features that are commonly associated with traffic accidents and its regulation, such as average miles a driver has driven, percentage of young drivers, the amount of tax collected per case of beer, the presence of preliminary breath test law, and whether the state implemented mandatory jail sentence or community service for an initial drunk driving conviction, were also presented in the dataset. Finally, the number of vehicle fatalities and its numerous subsets, such as night-time or single vehicle fatalities, were introduced. The observations were recorded for each state annually. In total, there are 336 observations recorded for 34 distinct variables.     
 
-Due to the observational nature of the data, obtaining causal effects may pose to be a challenge. In this report, we will attempt to discover if there is a causal relationship between having a mandatory jail sentence for an initial drunk driving conviction and the number of traffic fatalities. In particular, we will study if a mandatory jail sentence is related to having a lower number of traffic fatalities. 
+Due to the observational nature of the data, obtaining causal effects may pose to be a challenge. In observational studies, treatment selection is often influenced by subject characteristics. In the context of our study, "treatment assignment" refers to whether a state has a mandatory jail sentence for an initial drunk driving conviction. It is not difficult to imagine that demographic characteristics of a state can influence both its traffic legislations as well as its traffic fatality rate, causing confounding effects that obscure the impact of traffic legistlations on traffic fatality. As a result, systematic differences in baseline characteristics between states with and without mandatory jail sentence must be taken into account when estimating its effect on outcomes. The **propensity score** is the probability of treatment assignment conditional on observed baseline characteristics. The propensity score allows one to design and analyze an observational study so that it mimics some of the particular characteristics of a randomized controlled trial. In particular, conditional on the propensity score, the distribution of observed baseline covariates will be similar between treated and untreated subjects, allowing the estimation of average treatment effect (Austin, 2011). In this report, we will attempt to discover potential causal relationship between having a mandatory jail sentence for an initial drunk driving conviction and the traffic fatality rate of the state using the **propensity score matching** technique, followed by **mixed-effect ANOVA modeling**. The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates.    
 
-#### 1.2 Questions of Interest
+#### 1.2 Questions of Interest   
 
-         
+- Are there demographic features that correlate with a state's mandatory jail sentence law?     
+- Is a state's mandatory jail sentence law associated with its annual traffic fatality rate, without adjusting for potential covariating demographic variables?    
+- Is a state's mandatory jail sentence law associated with its annual traffic fatality rate, after adjusting for potential covariating demographic variables?    
+- Can we draw causal conclusions regarding the relationship between a state's mandatory jail sentence law and its annual traffic fatality rate?     
 
-## 2.0 Analysis Plan
+## 2.0 Analysis Plan    
 
-The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates. From data collected by the National Highway Traffic Safety Administration's Fatal Accident Reporting System (FARS), we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.
+From data collected by the National Highway Traffic Safety Administration's FARS, we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.     
 
 #### 2.1 Population and study design
 check if time compente is independtneneed to check that time is independent within each state. 
@@ -236,15 +240,22 @@ check if time compente is independtneneed to check that time is independent with
 remove states that changed policies and do a linear regression w/ time to see if it effects the fatality rate.
 
 #### 2.2 Descriptive Analysis   
-spagetti plot
+spaghetti plot
 
 #### 2.3 Propensity Score Analysis
 
 ##### 2.3.1 Propensity Score Estimation
 
-We will estimate the propensity score through a logistical model. The outcome variable is a binary variable indicating treatment status, wheater or not a State has a mandatory jail sentence. And the output of this model is the probability that a State has a mandatory jail sentence given our data of covariates. The logistical model we used to estimate the propensity score is as follows:
+We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence; the 15 independent variables of the logistic regression model are demographic variables that could potentially influence whether a state mandates jail sentence. These variables include: year, population, GSP, spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, preliminary breath test, and mandatory community service upon initial drunk driving conviction. 
 
-##### 2.3.2 Maching
+The output of this model is the propensitiy score, which equals to the probability that a State has a mandatory jail sentence given our set of covariates. The logistic regression model we used to estimate the propensity score is as follows:
+
+$$
+log(\frac{\pi_i}{1-\pi_i}) = \beta_0 + \beta_1x_{i1} + ... + \beta_kx_{ik}, 
+$$
+Where $\pi_i = P(Y_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Y_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Y_i = 1$ when the state has mandatory jail sentence, and $Y_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 15, indicating the realized value of the 15 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$ 
+
+##### 2.3.2 Matching
 
 To match the samples with mandatory jail sentences to samples without, we will divide the data contained within the region of common support into 5 quintiles, based on the estimated propensity score. Within each of these 5 quintiles, we can then estimate the mean difference in fatality rate by jail status. Rubin and others have argued that this is sufficient to eliminate 95% of the bias due to the confounding of treatment status with a covariate.
 
@@ -275,7 +286,7 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 ##### 3.2.1 Propensity Score Estimation
 
-##### 3.2.2 Maching
+##### 3.2.2 Matching
 
 ##### 3.2.3 Examining covariate balance in the matched sample    
 
@@ -290,6 +301,13 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 ## 4.0 Discussion
 
+### Propensity Score Matching 
+
+### for Causal Inference
+
+### Caveats of the study
 
 ## 5.0 Reference
+Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786
+
 
