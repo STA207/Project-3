@@ -49,6 +49,11 @@ data %>%
 data %>% 
   group_by(state) %>% 
   summarise(yes = sum(jail == "yes"), no = sum(jail == "no")) %>% 
+  filter(yes!=7 & yes != 0 | is.na(yes))
+
+data %>% 
+  group_by(state) %>% 
+  summarise(yes = sum(jail == "yes"), no = sum(jail == "no")) %>% 
   filter(yes!=7 & yes != 0 | is.na(yes)) %>% 
   select(state)
 
@@ -58,8 +63,12 @@ data %>%
   filter(state %in% state_1) %>% 
   ggplot(aes(x = year, y  = fatal_rate, group = state)) +
   geom_line()+
-  geom_point(aes(shape = jail, color = jail), size = 4, alpha = .7)+
-  geom_dl(aes(label = state), method = list("last.points"))
+  geom_point(aes(shape = jail), size = 3)+
+  scale_shape_manual(values=c(5, 17))+
+  geom_dl(aes(label = state), method = list("last.points")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(y = "Fatality Rate", x = "Year")
   
 ```
 
