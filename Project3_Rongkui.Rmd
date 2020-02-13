@@ -58,7 +58,7 @@ labs = paste("Actual jail law implemented:", c("Yes", "No"))
 prs_df %>%
   mutate(jail = ifelse(jail == 1, labs[1], labs[2])) %>%
   ggplot(aes(x = pr_score)) +
-  geom_histogram(color = "white") +
+  geom_histogram(color = "white", bins = 30) +
   facet_wrap(~jail) +
   xlab("Probability of implementing mandatory jail sentence") +
   theme_bw()
@@ -283,12 +283,18 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 #### 3.2 Propensity Score Analysis
 
-
 ##### 3.2.1 Propensity Score Estimation
+
+
 
 ##### 3.2.2 Matching
 
-##### 3.2.3 Examining covariate balance in the matched sample    
+##### 3.2.3 Examining covariate balance in the matched sample 
+
+```{r}
+
+```
+
 
 ##### 3.2.4 Estimate Treatment Effect
 
@@ -303,9 +309,11 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 ### Propensity Score Matching 
 
-### for Causal Inference
+### Causal Inference
 
 ### Caveats of the study
+
+
 
 ## 5.0 Reference
 Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786
