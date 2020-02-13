@@ -189,6 +189,12 @@ mean(data$fr[data$jail == 1]) - mean(data$fr[data$jail == 0])
 
 
 ```{r}
+plot(dta_m$year)
+plot(data$year)
+```
+
+
+```{r}
 #What about if we inlcude state in the linear regression model
 
 #Fixed
@@ -290,6 +296,10 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 ## 4.0 Discussion
 
+### Propensity Score Matching for Causal Inference
+
+### Caveats of the study
 
 ## 5.0 Reference
+
 
