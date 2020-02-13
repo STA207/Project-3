@@ -2,9 +2,6 @@
 output:
   bookdown::pdf_document2:
     toc: False
-    df_print: paged
-    fig_caption: yes
-    number_sections: yes
 ---
 
 <style type="text/css">
@@ -19,31 +16,31 @@ body{ /* Normal  */
 knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
 ```
 
-# missing data
 ```{r}
 library("AER")
 library(tidyverse)
 data(Fatalities)
 
+sum(is.na(Fatalities))
+
 ```
 
-# an ugly plot for all states
 ```{r}
 data = Fatalities %>% 
   mutate(fatal_rate = fatal/pop*10000)
 
 ```
+
 ```{r}
 library("directlabels")
-data %>% 
-  ggplot(aes(x = year, y  = fatal_rate, group = state, color = state)) +
-  geom_line()+
-  facet_wrap(state~.)+
-  theme(legend.position="none")
-  #geom_dl(aes(label = state), method = list(dl.combine("first.points", "last.points")))
+#data %>% 
+#  ggplot(aes(x = year, y  = fatal_rate, group = state, color = state)) +
+#  geom_line()+
+#  facet_wrap(state~.)+
+#  theme(legend.position="none")
+#  #geom_dl(aes(label = state), method = list(dl.combine("first.points", "last.points")))
 ```
 
-# states that the jail policy changed
 ```{r}
 data %>% 
   group_by(state) %>% 
@@ -71,14 +68,14 @@ data %>%
   
 ```
 
-jail = 1? jail = 0?
-
 Treatment selection may be confounded with patient characteristics related to the outcome. 
 
+# map 
 ```{r}
 library(maps)
 library(ggplot2)
 library(openintro)
+library(dplyr)
 
 states_map <- map_data("state") %>% 
   mutate(state = str_to_lower(state2abbr(region)))
@@ -103,15 +100,15 @@ data_2 %>%
 ```{r}
 library(wfe)
 
-data$jail <- data$jail %>% 
-  fct_recode(
-    "1"="yes",
-    "0"="no"
-  ) %>% 
-  as.numeric()
+d1= Fatalities %>% 
+  mutate(fatal_rate = fatal/pop*10000)
+
+d1$jail = as.integer(ifelse(d1$jail == 'yes', 1, 0))
+d1[d1$state == "ca" & d1$year == "1988",]$jail = 0
 
 
-f = pwfe(~ jail+beertax+unemp, data = data, treat = "jail", outcome = "fatal_rate", unit.index = "state", time.index = "year",
-    method = "unit", within.unit = TRUE, qoi = "ate", hetero.se=TRUE, auto.se=TRUE)
+f = pwfe(~ jail + spirits + unemp + income + beertax + drinkage + dry + youngdrivers + miles + breath + pop + gsp , data = d1, treat = "jail", outcome = "fatal_rate", unit.index = "state", time.index = "year", method = "unit", within.unit = TRUE, qoi = "ate", hetero.se=TRUE, auto.se=TRUE)
+
+summary(f)
 ```
 
