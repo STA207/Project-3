@@ -21,8 +21,9 @@ data("Fatalities")
 data = Fatalities
 
 #Impute values for missing CA data
-data[28,15] = as.factor("no")
-data[28,16] = as.factor("no")
+
+#data[28,15] = as.factor("no")
+#data[28,16] = as.factor("no")
 
 
 #head(data)
@@ -35,6 +36,8 @@ data['fr'] = data$fatal/data$pop*10000
 We estimate the propensity score by running a logit model (probit also works) where the outcome variable is a binary variable indicating treatment status. What covariates should you include? For the matching to give you a causal estimate in the end, you need to include any covariate that is related to **both the treatment assignment and potential outcomes**. I choose just a few covariates below—they are unlikely to capture all covariates that should be included. You’ll be asked to come up with a potentially better model on your own later.
 
 ```{r}
+dim(data)
+data = data[!is.na(data$jail),]
 data$jail = ifelse(data$jail == 'yes', 1, 0)
 m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, family = binomial(), data = data)
 summary(m_ps)
@@ -76,7 +79,7 @@ data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "m
 mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
 
 dta_m = match.data(mod_match)
-#dim(dta_m)
+dim(dta_m)
 ```
 
 ## Examining covariate balance in the matched sample    
@@ -134,15 +137,10 @@ dta_m_mean = dta_m_mean[,c('jail', data_cov)]
 dta_m_mean
 ```
 
-You can test this more formally using t-tests. Ideally, we should not be able to reject the null hypothesis of no mean difference for each covariate:   
+```{r}
 
-
-Not working: 
-```{r, eval = FALSE}
-lapply(data_cov, function(v) {
-    t.test(dta_m[,v] ~ dta_m$jail)
-})
 ```
+
 
 ## Estimating treatment effects
 Estimating the treatment effect is simple once we have a matched sample that we are happy with. We can use a t-test:
@@ -231,44 +229,48 @@ Due to the observational nature of the data, obtaining causal effects may pose a
 
 ## 2.0 Analysis Plan    
 
-From data collected by the National Highway Traffic Safety Administration's FARS, we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.     
+From data collected by the National Highway Traffic Safety Administration's FARS, we plan to conduct a propensity score analysis followed by mixed-effect ANOVA modeling to isolate the average effect of required jail time on automobile fatality rates.
 
 #### 2.1 Population and study design
 
+The response variable used in this analysis is the yearly traffic fatality rate per 10,000 population. This statistic will be calculated by dividing a state's total traffic fatality count within a given year by its population of the year, multiplied by 10,000.
+
+The "Fatalities" dataset is a longitudinal dataset, also know as "panel dataset", with a "year” index that delineates the temporal order of entries. In a typical panel dataset, each individual has multiple entries, some of which correspond to pre-treatment records while others post-treatment. In this regard, the vehicle fatality dataset is atypical, because only six out of 48 states had pre- and post-treatment records (*Figure X*). Most states did not change their mandatory jail sentence policy between 1982 and 1988. Due to this limitation, common panel data analysis techniques are not applicable. In response, we will follow a bench-marked pipeline for analyzing non-panel observational data under a propensity score matching framework, while closely monitoring the behavior of the temperal variable throughout the analysis, and address any potential issues that might arise. 
 
 #### 2.2 Descriptive Analysis   
-spaghetti plot
 
-#### 2.3 Propensity Score Analysis
+#### 2.3 Propensity Score Analysis     
+##### 2.3.1 Propensity Score Estimation     
 
-##### 2.3.1 Propensity Score Estimation
+We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence. There is a lack of consensus in the applied literature as to which variables to include in the propensity score model (Austin, 2001). Brookhart et al. (2006) suggested that for practical purposes, it is safe to include all potential confounding covariables in propensity score estimation. In this study, 14 independent variables were included in the logistic regression model to account for demographic characteristics that could potentially influence whether a state mandates such a jail sentence. These variables include year, population, gross state product (GSP), spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of Mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, and preliminary breath test upon initial drunk driving conviction.     
 
-We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence; the 15 independent variables of the logistic regression model are demographic variables that could potentially influence whether a state mandates such a jail sentence. These variables include year, population, GSP, spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of Mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, and preliminary breath test upon initial drunk driving conviction. 
-
-The output of this model is the propensity score, which equals to the probability that a State has a mandatory jail sentence given our set of covariates. The logistic regression model we used to estimate the propensity score is as follows:
+The output of this model is the propensity score, which equals to the probability that a State has a mandatory jail sentence given the set of covariates. The logistic regression model we used to estimate the propensity score is as follows:
 
 $$
 log(\frac{\pi_i}{1-\pi_i}) = \beta_0 + \beta_1x_{i1} + ... + \beta_kx_{ik}, 
 $$
-Where $\pi_i = P(Y_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Y_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Y_i = 1$ when the state has mandatory jail sentence, and $Y_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 15, indicating the realized value of the 15 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$ 
+Where $\pi_i = P(Z_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Z_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Z_i = 1$ when the state has mandatory jail sentence, and $Z_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 14, indicating the realized value of the 14 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$. 
 
 ##### 2.3.2 Matching
 
-To match the samples with mandatory jail sentences to samples without, we will divide the data contained within the region of common support into 5 quintiles, based on the estimated propensity score. Within each of these 5 quintiles, we can then estimate the mean difference in fatality rate by jail status. Rubin and others have argued that this is sufficient to eliminate 95% of the bias due to the confounding of treatment status with a covariate.
-
-To match observations with mandatory jail sentences to observations without, we will use the nearest neighbor matching algorithm based upon our generated propensity score.  
+To match observations with mandatory jail sentences to observations without, we will use the nearest neighbor matching algorithm based upon propensity score.   
 
 ##### 2.3.3 Examining covariate balance in the matched sample    
 
-We must assess the covariate balance in our matched sample to ensure our assumptions for a propensity score are met. We will perform a visual inspection through covariate balance plots and perform several t-tests for difference-in-means.
+We must assess the covariate balance in our matched treated and untreated sample sets to ensure a near-random distribution covriates within each set. We will perform visual inspections and t-tests to check for difference in means.
 
 ##### 2.3.4 Estimate Treatment Effect
 
-To estimate the effect of mandatory jail sentences on a State's fatality rate, we will fit the following linear regression relating the binary treatment variable to Fatality Rate.
+To estimate the effect of mandatory jail sentences on a State's traffic fatality rate, we will fit the following linear regression relating the binary treatment variable to Fatality Rate:
 
+$$
+Y_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}
+$$
+for $i = 1, j \in [1, ..., 47],$ and $k \in [1, ..., 6]$.   
 
+Where $Y_{ijk}$ represents the yearly traffic fatality rate of a given State in a given year; $\alpha_i$ represents the fixed effect of mandatory jail sentence law; $\beta_j$ represents the random effect of State $j$, and $\epsilon_{ijk}$ the residuals.  
 
-
+The model is constrained such that 
 
 #### 2.4 Model Diagnostics
 
@@ -314,5 +316,5 @@ To estimate the effect of mandatory jail sentences on a State's fatality rate, w
 
 ## 5.0 Reference
 Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786
-
+Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156. 
 
