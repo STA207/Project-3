@@ -1,8 +1,6 @@
 ---
 title: "Project3"
-output:
-  bookdown::pdf_document2:
-    toc: no
+output: word_document
 ---
 
 <style type="text/css">
@@ -12,6 +10,11 @@ body{ /* Normal  */
   }
 
 </style>
+
+```{r}
+library(MatchIt)
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
