@@ -1,8 +1,8 @@
 ---
-title: "Project3"
-author: "Rongkui Han"
-date: "2/6/2020"
-output: word_document
+title: "Effect of mandatory jail sentence on State vehicel fatality rate"
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r, include = FALSE}
@@ -15,6 +15,8 @@ library(ggdag)
 library(AER)
 library(pscl)
 library(gridExtra)
+library(influence.ME)
+library(tidyverse)
 ```
 
 ```{r, include = FALSE}
@@ -70,16 +72,6 @@ mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist +
 dta_m = match.data(mod_match)
 dim(dta_m)
 ```
-
-## Examining covariate balance in the matched sample    
-
-We’ll do three things to assess covariate balance in the matched sample:
-
-- visual inspection
-- t-tests of difference-in-means
-- computation of the average absolute standardized difference (“standardized imbalance”)
-
-
 
 ```{r, include = FALSE}
 fn_bal <- function(dta, variable) {
@@ -227,9 +219,6 @@ log(\frac{\pi_i}{1-\pi_i}) = \beta_0 + \beta_1x_{i1} + ... + \beta_kx_{ik},
 $$
 Where $\pi_i = P(Z_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Z_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Z_i = 1$ when the state has mandatory jail sentence, and $Z_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 14, indicating the realized value of the 14 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$. 
 
-```{r}
-
-```
 
 
 ##### 2.3.2 Matching
@@ -238,7 +227,11 @@ To match observations with mandatory jail sentences to observations without, we 
 
 ##### 2.3.3 Examining covariate balance in the matched sample    
 
-We must assess the covariate balance in our matched treated and untreated sample sets to ensure a near-random distribution covriates within each set. We will perform visual inspections and t-tests to check for difference in means.
+After the propensity score matching, we would check whether our propensity score model has been adequately specified using the following steps:
+
+(1) we would assess the standardized differences of each covariate between treatment groups. 
+(2) we would assess the distributions of propensity scores by treatment.
+(3) we would compare distributions of the covariates between treatments.
 
 ##### 2.3.4 Estimate Treatment Effect
 
@@ -262,9 +255,91 @@ The model is constrained such that $\displaystyle\sum\limits_{i = 0, 1}\alpha_i 
 
 We will use Q-Q plot, histogram and the Shapiro-Wilk test inspect the normality of residuals. A scatter plot and a fitted-value-versus-residual scatter plot and the Levene test will be used to examine equality of residual variance. Independence of residuals and outlying data points will also be discussed.      
 
+##### 2.5 Causal Inferece Assumptions
+
+The legislative measures to reduce fatal collisions, such as mandatory jail sentences, are determined at the State level. A State legislature's decision to implement this treatment, is, however, based upon much of the information contained within our dataset, which creates a dependence between the treatment level and our other predictor variables. We can control for this dependence by making use of the covariates which affect the outcome and treatment selection by performing a propensity score matching procedure (Sasidharan, 2013).  
+
+To make causal inferences with propensity score analysis, we make the following assumptions:
+
+*1.* **Stable unit treatment value assumption (SUTVA)** (Rubin, 1990): This assumption states that the treatment applied to one entity does not affect the outcome of any other (i.e., no interference among the entities). In our case, it is challenging to make this assumption for two primary reasons. First, the fatality rates are likely correlated between states who share a geographic boundary. For example, the fatality rate of New York is likely highly correlated with New Jersy's as much of New Jersy's population commutes into New York, and vice-a-versa. Mediating this spatial correlation is outside the scope of this class, and we will continue under the assumption that the fatality rate of states is not geographically correlated with one another. Secondly, there is a likely correlation in a State's fatality rate across time. For example, we would expect California's 1982 fatality rate having a strong correlation with the 1983 rate. While we attempted to control for this correlation across time through a three-point moving average model. Applying this model to our data resulted in a 33% loss of data, since each state only has six observations. Given the time constraints of this project, we decided to ignore the correlations across time, and assume that the effect of time is independent across all observations. 
+
+While it is clear that our data fails to strictly meet the SUTVA assumptions for causal inference. To continue the project, we will satisfy this assumption by ignoring the effects of time and geographic proximity.
+
+*2.* **Positivity**: This assumption requires that there be a non-zero probability of receiving every level of treatment for the combination of values of exposure and covariates that occur among entities in the population (Rubin, 1978). Since each state can pass legislation for and against mandatory jail sentences at any time, the probability of receiving both levels of the treatment is, in fact, positive. 
+
+*3.* **Unconfoundedness**: The treatment assignment mechanism is said to be unconfounded if the treatment status is conditionally independent of the potential outcomes, given a set of covariates (Rubin, 1990). This assumption is not satisfied by our original data since a clear dependence exists between a State's decision to implement mandatory jail sentences is based upon much of the data we plan to use in our analysis. However, through the use of propensity score matching, we can control for this since the propensity score is conditioned on all potential covariates (Rosenbaum, 1983).  
+
+*4.* **Observation of all Covariates**: This assumption, unique to propensity score, requires we observe all possible covariates in the assignment of a treatment (Rosenbaum, 1983). Unfortunately, with such a complex decision such as implementing a required jail sentence, it is impossible to assume that our data is a complete case of all covariates used in this decision. However, since we are limited with both the data and time at hand, we will make this assumption in order to continue the project. 
+
+
+##### 2.6 Mixed Linear Models Assumptions
+
+After propensity score matching, we plan to construct a mixed linear model to capture the average causal effect of mandatory jail sentences while accounting for the random effect due to each individual state. To use this type of model, the following assumptions must be satisfied.
+
+*1.* **Normality & Equal Variance**: The model residuals approximately follow a $Normal(0,\sigma^2)$ distribution.
+
+*2.* **Independence**: The model residuals follow no detectable pattern and appear to unrelated to one another.  
+
+*3.* **Outliers**: The data does not contain any major outliers.
+
+*4.* **State Effect**: The effect due to each state follows a $Normal(0,\sigma_{\alpha}^2)$ distribution.
+
 ## 3.0 Results    
 
 #### 3.1 Descriptive Analysis     
+
+The data set contains the US traffic fatalities panel data for the 48 contiguous states from 1982 to 1988, where each state is observed in seven time periods. There are 336 rows and 34 columns in the data set. Each row represents an observation for a state in a time point and each column represents a variable for the observation.
+
+To compare the traffic deaths across the different states and times, we use the fatality rate here, which is the number of annual traffic death in every 10,000 people of that state.
+
+First, we found out there is two missing values in the data set, which are the variable that whether the state had a mandatory jail sentence or not and the variable that whether the state had a mandatory community service or not for Califonia in 1988. Besides, there are 41  states did not change their policy in the mandatory jail sentence from 1982 to 1988. The relationship between the fatality rate and the policy in the mandatory jail sentence for the other seven states is shown in the Figure \@ref(fig:fatal)(a). From Figure \@ref(fig:fatal)(a), both South Carolina and Nevada changed their policy in the mandatory jail sentence from no to yes in 1983, but their fatality rates changed in the opposite direction after that. Similarly, we could also observe this situation in Oregon, Utah, and Connecticut. Given this plot, we may also need to consider the effects of other variables in the data set or the effects of unobserved variables. Also, because of the existence of missing values, for the analysis in the following part, we drop the observation for California in 1988. 
+
+Then, we explore the distribution of fatalities rate for all the observations. Figure \@ref(fig:fatal)(b) shows that overall, observations that had the mandatory jail sentence had a higher fatality rate than observations that did not have the mandatory jail sentence had a higher fatality rate, but the difference in medians is not significant. Figure \@ref(fig:fatal)(c) shows that distributions of fatalities rate for different years are roughly the same. 
+
+
+```{r fatal, fig.cap="(a) Fatality rate for states that changed their policy in the mandatory jail sentence from 1982 to 1988 (b) Boxplot of the fatality rate for different policies in the mandatory jail sentence (c) Boxplot of the fatality rate for different years"}
+library("AER")
+library(tidyverse)
+data(Fatalities)
+
+library("directlabels")
+library(gridExtra)
+
+data = Fatalities %>% 
+  mutate(fatal_rate = fatal/pop*10000)
+
+state_1 <- c('ca', 'ct', 'nv', 'oh', 'or', 'sc', 'ut')
+
+plot1 <- data %>% 
+  filter(state %in% state_1) %>% 
+  ggplot(aes(x = year, y  = fatal_rate, group = state)) +
+  geom_line()+
+  geom_point(aes(shape = jail), size = 3)+
+  scale_shape_manual(values=c(5, 17))+
+  geom_dl(aes(label = state), method = list("last.points", hjust = -.5)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(y = "Fatality Rate", x = "Year")
+
+#data[data$state == "ca" & data$year == "1988",]$jail = "no"
+data <- data %>% drop_na()
+
+plot2 <- data %>% 
+  ggplot(aes(x = jail, y = fatal_rate))+
+  geom_boxplot(na.rm = TRUE) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(y = "Fatality Rate", x = "Jail")
+
+plot3 <- data %>% 
+  ggplot(aes(x = year, y = fatal_rate))+
+  geom_boxplot(na.rm = TRUE) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  labs(y = "Fatality Rate", x = "Year")
+
+grid.arrange(plot1, arrangeGrob(plot2, plot3, ncol = 2), ncol = 1, heights = c(.4/4, .3/4))
+```
 
 #### 3.2 Propensity Score Analysis    
 
@@ -273,7 +348,7 @@ We will use Q-Q plot, histogram and the Shapiro-Wilk test inspect the normality 
 A logistic regression model was fit to estimate propensity score for matching treated and untreated samples. Distribution of the estimated propensity scores are displayed in *Figure Y*.    
 
 *Figure T*: Distribution of quantitative dependent variables by propensity score:     
-```{r}
+```{r, echo = FALSE}
 fn_bal <- function(dta, variable) {
   dta$variable <- dta[, variable]
   dta$jail <- as.factor(dta$jail)
@@ -308,7 +383,7 @@ grid.arrange(
 
 
 *Figure Y*: Propensity score distribution across two treatment groups
-```{r}
+```{r, echo = FALSE}
 prs_df %>%
   mutate(jail = ifelse(jail == 1, labs[1], labs[2])) %>%
   ggplot(aes(x = pr_score)) +
@@ -324,6 +399,36 @@ Nearest neighbor matching algorithm resulted in a new dataset of 188 entires, wi
 
 ##### 3.2.3 Examining covariate balance in the matched sample 
 
+(1) The standardized differences of each covariate between treatment groups.
+
+Table \@ref(tab:stdf) shows the results of standardized differences and the 95% confidence interval for covariates. It can be seen that all the confidence intervals include 0, we are 95% confidence that there is no differences between treatment groups for covariates.  
+
+```{r stdf}
+library(stddiff)
+library(cobalt)
+
+#bal.tab(mod_match, m.threshold = .1)
+stdf <- stddiff.numeric(dta_m, 15, c(3:13, 27, 34))
+colnames(stdf) <- c("Mean(jail = 0)","Sd(jail = 0)","Mean(jail = 1)","Sd(jail = 1)","missing.c","missing.t", "Standardized difference",  "Lower bound", "Upper bound")
+stdf <- stdf %>% as.tibble()
+knitr::kable(stdf[,c(1:4,7:9)], caption = "Standardized differences of covariates between treatment groups.")
+```
+
+(2) Distributions of propensity scores by treatment.
+(3) Distributions of the covariates between treatments.
+
+Figure \@ref(fig:cov_bp) shows that distributions of the covariates are similar between treatments.
+```{r cov_bp, fig.cap="Distributions of the covariates "}
+
+data_cov = c("spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "pop" , "gsp")
+par(mfrow = c(3,4))
+for (i in 1:length(data_cov)){
+  boxplot(dta_m[,data_cov[i]]~dta_m$jail, xlab = "Jail", ylab = data_cov[i])
+}
+par(mfrow = c(1,1))
+```
+
+
 ##### 3.2.4 Estimate Treatment Effect
 
 #### 3.3 Model Diagnostics
@@ -334,6 +439,90 @@ Unlike linear regression with ordinary least squares estimation, there is no $R^
 
 ##### 3.3.2 Mixed Effect model     
 
+The two crucial assumptions for a mixed effect model are normally distributed residuals and constant variance of the residuals across the fitted values, which will be discussed below. Influential observations will also be discussed.   
+
+```{r, echo = FALSE}
+# Mixed effects model
+fit2 <- lmer(fr ~ jail + (1 | state), data = dta_m)
+# summary(fit2)
+```
+
+```{r, echo = FALSE}
+qqnorm(residuals(fit2))
+qqline(residuals(fit2), col = "red")
+```
+
+```{r, echo = FALSE}
+hist(residuals(fit2), main = "Histogram of Residuals", xlab = "Residual Values")
+```
+
+```{r, echo = FALSE}
+plot(fit2)
+```
+
+```{r, echo = FALSE}
+
+hist(residuals(fit2), main = "Histogram of Residuals", xlab = "Residual Values")
+```
+
+Figure ..: Visual diagnostics of Mixed Effect model assumptions. (a). Normal Q-Q plot of residuals. (b) Histogram of model residuals. (c) Residuals-versus-fitted value scatter plot. 
+
+#####  Normality:
+
+From the Q-Q plot of the residuals (Figure ..a), we can see that the probability mass on the left and right tails are higher than what is expected from a normal distribution. The distribution of the residuals seem to be heavy-tailed. Thus, the normality assumption is not satisfied from the Q-Q plot. A histogram is used to visualize the distribution of the residuals (Figure ..b). From the histogram, it is not easily noticeable that the residuals do not follow a normal distribution. 
+
+To further test for normality of the errors, a Shapiro-Wilk test will be used on the distribution of the residuals. A Shapiro-Wilk test is used to test whether a distribution of data follows a normal distribution.
+
+The null and alternative hypotheses of the Shapiro-Wilk test are:   
+$H_0$: The residuals are normally distributed.   
+$H_1$: The residuals are not normally distributed.   
+
+```{r, include = FALSE}
+shapiro.test(residuals(fit2))
+```
+
+The p-value is essentially 0, and thus we reject the null hypothesis. Thus, there is evidence that the distribution of the residuals do not follow a normal distribution.
+
+##### Equal Variances:
+
+The spread of the residuals seem to increase along the x-axis in the residuals-versus-fitted value scatter plot (Figure ..c), indicating unequal variance of the residuals across the fitted values. Thus, the equal variance assumption is not satisfied. 
+
+#### Influential Observations:
+
+```{r, include = FALSE}
+infl <- influence(fit2, obs=TRUE)
+```
+
+```{r, echo = FALSE}
+plot(infl, which = "cook")
+```
+
+Since the Cook's distance for every observation is less than 1, we conclude that there are no highly influential observations.
+
+##### Response Variable Transformation:
+
+In an attempt to remedy the departures of the assumptions of the mixed effect model, we used a log transformation of the response variable, fr. After the transformation, we concluded that the distribution of the residuals did not follow a normal distribution after looking at a Normal Q-Q plot and performing a Shapiro-Wilk test. The residuals did seem to have more equal variance across the fitted values after the transformation. Overall, a log transformation of the response variable did not remedy the departures of the assumptions of the mixed effect model.   
+
+```{r, include = FALSE}
+fit3 <- lmer(log(fr) ~ jail + (1 | state), data = dta_m)
+```
+
+```{r, include = FALSE}
+qqnorm(residuals(fit2, type="pearson"))
+qqline(residuals(fit2, type="pearson"), col = "red")
+```
+
+```{r, include = FALSE}
+hist(residuals(fit3), main = "Histogram of Residuals", xlab = "Residual Values")
+```
+
+```{r, include = FALSE}
+plot(fit3)
+```
+
+```{r, include = FALSE}
+shapiro.test(residuals(fit3, type="pearson"))
+```
 
 ## 4.0 Discussion
 
@@ -358,15 +547,31 @@ The exogeneity assumption states that the independent variable (implementation o
 Although this expansive dataset captures many prominent variables that are associated with vehicle fatality rate, many more economic and social factors come into play in impacting the interactions between the implementation of mandatory jail sentence and vehicle fatality rate. We cannot confidently exclude the possiblity of the existence of many of such variables (*Figure Zb*).
 
 *Figure Z: directed acyclic graphs of scenarios where direction of causal inference changes. a. Violation of exogeneity. b. Violation of ignorability of unobserved confounding variables. M: mandatory jail sentence; F: vehicle fatality rate; UC: unobserved confounding variable*     
-```{r}
+```{r, echo = FALSE}
 dag1 = dagitty("dag{ F -> M }")
 dag2= dagitty("dag{ M <- UC -> F }")
 grid.arrange(ggdag(dag1), ggdag(dag2), nrow = 1)
 ```
 
+Ultimately, our analysis makes very improbable assumptions in order to analyze this observational data. Due to this lack of strong assumptions around SUTVA and observation of all covariates, we fail to make any strong causal conclusions regarding the effect of mandatory jail sentences on State fatality rates.
+
+Due to this lack of clear causality, we propose State legislators focus their energy and capital on measures directly correlated with the probability of entering a fatal collision. Better seatbelt enforcement, speeding enforcement, and drunk driver intervention have all demonstrated their effectiveness at better-protecting citizens and reducing the risk of a fatal accident (Morley, 2016). Legislators should focus on active measures to combat fatal automobile collisions instead of hoping to find a strong causal effect in passive measures like mandatory jail sentencing.
+
 ## 5.0 Reference
 Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786    
+
 Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156.  
 Rosenbaum P.R., Rubin D.B. (1983). The central role of the propensity score in observational studies for causal effects. Biometrika. 70:41–55.
+
+Durbin, D. R., Elliott, M. R., & Winston, F. K. (2009). A propensity score approach to estimating child restraint effectiveness in preventing mortality. Statistics and Its Interface, 2(4), 437–447. doi: 10.4310/sii.2009.v2.n4.a5
+
+Morley, A., Morris, A., Abi Semaan, M., & Hancox, G. (2016). A Guide for Policy Makers: On Reducing Road Fatalities. Retrieved from https://www.pwc.com/m1/en/publications/guide-on-reducing-road-fatalities.html
+
+Rodriguez, D., Rejesus, R., & Aragon, C. (2007). Impacts of an Agricultural Development Program for Poor Coconut Producers in the Philippines: An Approach Using Panel Data and Propensity Score Matching Techniques. Journal of Agricultural and Resource Economics, 32(3), 534-557. Retrieved February 14, 2020, from www.jstor.org/stable/40982695
+
+Rosenbaum, P., & Rubin, D. (1983). The Central Role of the Propensity Score in Observational Studies for Causal Effects. Biometrika, 70(1), 41-55. doi:10.2307/2335942
+
+Sasidharan, L., & Donnell, E. T. (2013). Application of propensity scores and potential outcomes to estimate effectiveness of traffic safety countermeasures: Exploratory analysis using intersection lighting data. Accident Analysis & Prevention, 50, 539–553. doi: 10.1016/j.aap.2012.05.036
+
 Smith, H. L. (1997). 6. Matching with Multiple Controls to Estimate Treatment Effects in Observational Studies. Sociological methodology, 27(1), 325-353.   
 
