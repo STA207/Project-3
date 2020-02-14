@@ -1,41 +1,201 @@
-
 ---
 title: "Project3"
 author: "Rongkui Han"
 date: "2/6/2020"
 output:
-  bookdown::pdf_document2: default
-  toc: no
+  bookdown::pdf_document2:
+    toc: FALSE
 ---
 
+## Propensity Score matching
 ```{r}
-library(AER)
-library(kableExtra)
-library(knitr)
-library(latexpdf)
-library(ggplot2)
+library(MatchIt)
 library(dplyr)
+library(ggplot2)
 library(lme4)
-
 ```
 
 ```{r}
+library(AER)
 data("Fatalities")
 data = Fatalities
 
-data = mutate(data, yearpast = (as.numeric(data$year))-1)
-data = mutate(data, fatalratio = (fatal/pop)*10000)
-
 #Impute values for missing CA data
-data[28,15] = as.factor("no")
-data[28,16] = as.factor("no")
+
+#data[28,15] = as.factor("no")
+#data[28,16] = as.factor("no")
 
 
-boxplot(data$fatalratio ~data$jail)
+#head(data)
+#dim(data)
+data['fr'] = data$fatal/data$pop*10000
+```
 
-library(sqldf)
+### Propensity score estimation    
 
-sqldf("SELECT sum(fatalratio)/count(fatalratio) from data WHERE jail == 'no'") -sqldf("SELECT sum(fatalratio)/count(fatalratio) from data WHERE jail == 'yes'")
+We estimate the propensity score by running a logit model (probit also works) where the outcome variable is a binary variable indicating treatment status. What covariates should you include? For the matching to give you a causal estimate in the end, you need to include any covariate that is related to **both the treatment assignment and potential outcomes**. I choose just a few covariates below—they are unlikely to capture all covariates that should be included. You’ll be asked to come up with a potentially better model on your own later.
+
+```{r}
+dim(data)
+data = data[!is.na(data$jail),]
+data$jail = ifelse(data$jail == 'yes', 1, 0)
+m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, family = binomial(), data = data)
+summary(m_ps)
+```
+
+
+
+```{r}
+prs_df = data.frame(pr_score = predict(m_ps, type = "response"),
+                    jail = m_ps$model$jail)
+#head(prs_df)
+#dim(prs_df)
+```
+
+#### Examining the region of common support
+
+After estimating the propensity score, it is useful to plot histograms of the estimated propensity scores by treatment status:    
+
+```{r}
+labs = paste("Actual jail law implemented:", c("Yes", "No"))
+prs_df %>%
+  mutate(jail = ifelse(jail == 1, labs[1], labs[2])) %>%
+  ggplot(aes(x = pr_score)) +
+  geom_histogram(color = "white", bins = 30) +
+  facet_wrap(~jail) +
+  xlab("Probability of implementing mandatory jail sentence") +
+  theme_bw()
+```
+
+## Executing a matching algorithm     
+
+A simple method for estimating the treatment effect of Catholic schooling is to restrict the sample to observations within the region of common support, and then to divide the sample within the region of common support into 5 quintiles, based on the estimated propensity score. Within each of these 5 quintiles, we can then estimate the mean difference in student achievement by treatment status. Rubin and others have argued that this is sufficient to eliminate 95% of the bias due to confounding of treatment status with a covariate.
+
+However, most matching algorithms adopt slightly more complex methods. The method we use below is to find pairs of observations that have very similar propensity scores, but that differ in their treatment status. We use the package MatchIt for this. This package estimates the propensity score in the background and then matches observations based on the method of choice (“nearest” in this case).
+
+```{r}
+data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "pop" , "gsp")
+
+mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
+
+dta_m = match.data(mod_match)
+dim(dta_m)
+```
+
+## Examining covariate balance in the matched sample    
+
+We’ll do three things to assess covariate balance in the matched sample:
+
+- visual inspection
+- t-tests of difference-in-means
+- computation of the average absolute standardized difference (“standardized imbalance”)
+
+
+
+```{r}
+fn_bal <- function(dta, variable) {
+  dta$variable <- dta[, variable]
+  dta$jail <- as.factor(dta$jail)
+  support <- c(min(dta$variable), max(dta$variable))
+  ggplot(dta, aes(x = distance, y = variable, color = jail)) +
+    geom_point(alpha = 0.2, size = 1.3) +
+    geom_smooth(method = "loess", se = F) +
+    xlab("Propensity score") +
+    ylab(variable) +
+    theme_bw() +
+    ylim(support)
+}
+
+library(gridExtra)
+grid.arrange(
+   #fn_bal(dta_m, "year"),
+   fn_bal(dta_m, "spirits"),
+   fn_bal(dta_m, "unemp"),
+   fn_bal(dta_m, "income"), #+ theme(legend.position = "none"),
+   fn_bal(dta_m, "beertax"),
+   #fn_bal(dta_m, "baptist"),
+   #fn_bal(dta_m, "mormon"),
+   fn_bal(dta_m, "drinkage"),
+   fn_bal(dta_m, "dry"),
+   fn_bal(dta_m, "youngdrivers"),
+   fn_bal(dta_m, "miles"),
+   #fn_bal(dta_m, "breath"),
+   fn_bal(dta_m, "pop"),
+   fn_bal(dta_m, "gsp"),
+   nrow = 4#, widths = c(1, 0.8)
+)
+```
+
+#### Difference-in-means
+The means below indicate that we have attained a high degree of balance on the five covariates included in the model.
+
+```{r}
+dta_m_mean = dta_m %>%
+  group_by(jail) %>%
+  summarise_all(funs(mean))
+dta_m_mean = dta_m_mean[,c('jail', data_cov)]
+dta_m_mean
+```
+
+```{r}
+
+```
+
+
+## Estimating treatment effects
+Estimating the treatment effect is simple once we have a matched sample that we are happy with. We can use a t-test:
+
+```{r}
+with(dta_m, t.test(fr ~ jail))
+```
+
+```{r}
+summary(data$fr)
+```
+
+
+Or OLS:  
+```{r}
+lm_treat1 <- lm(fr ~ jail, data = dta_m)
+summary(lm_treat1)
+confint(lm_treat1)
+
+lm_orig = lm(fr ~ jail, data = data)
+summary(lm_orig)
+confint(lm_orig)
+
+sum(dta_m$jail == 1) #94
+sum(dta_m$jail == 0) #94
+
+sum(data$jail == 1)
+sum(data$jail == 0)
+
+mean(dta_m$fr[dta_m$jail == 1]) - mean(dta_m$fr[dta_m$jail == 0])
+
+mean(dta_m$fr[dta_m$jail == 0])
+mean(dta_m$fr[dta_m$jail == 1])
+
+
+mean(data$fr[data$jail == 1]) - mean(data$fr[data$jail == 0])
+```
+
+
+```{r}
+plot(dta_m$year)
+plot(data$year)
+```
+
+
+```{r}
+#What about if we inlcude state in the linear regression model
+
+#Fixed
+fit1 = lm(fr ~ jail + state, data = dta_m)
+summary(fit1)
+
+#Random
+fit2 <- lmer(fr ~ jail + (1 | state), data = dta_m)
+summary(fit2)
 
 ```
 
@@ -56,46 +216,106 @@ sqldf("SELECT sum(fatalratio)/count(fatalratio) from data WHERE jail == 'no'") -
 
 #### 1.1 Background
 
-#### 1.2 Questions of Interest
+Traffic accidents cause thousands of deaths in the United States every year. Data pertinent to US traffic fatalities from the years 1982 to 1988 can be easily accessed in the "Fatalities" dataset. The data was obtained from sources such as the US Department of Transportation Fatal Accident Reporting System (FARS) and the US Bureau of Labor Statistics. The dataset includes panel data for 48 states (Alaska and Hawaii not included), containing demographic variables such as population, income per capita, religious belief, and unemployment rate. In addition, features that are commonly associated with traffic accidents and its regulation, such as average miles per driver, percentage of young drivers, tax collected per case of beer, presence of a preliminary breath test law, and whether the state implemented mandatory jail sentences or community service for an initial drunk driving conviction, were also presented in the dataset. Finally, the number of vehicle fatalities and its numerous subsets, such as night-time or single-vehicle fatalities, were introduced. The observations were recorded for each state annually. In total, there are 336 observations recorded for 34 distinct variables.     
 
-         
+Due to the observational nature of the data, obtaining causal effects may pose a challenge. In observational studies, treatment selection is often influenced by subject characteristics. In the context of our study, "treatment assignment" refers to whether a state has a mandatory jail sentence for an initial drunk driving conviction. It is not difficult to imagine that demographic characteristics of a state can influence both its traffic legislations as well as its traffic fatality rate, causing confounding effects that obscure the impact of legislation on traffic fatality. As a result, systematic differences in baseline characteristics between states with and without mandatory jail sentences must be taken into account when estimating its effect on outcomes. The **propensity score** is the probability of treatment assignment conditional on observed baseline characteristics. The propensity score allows one to analyze an observational study so that it mimics some of the particular characteristics of a randomized controlled trial. In particular, conditional on the propensity score, the distribution of observed baseline covariates will be similar between treated and untreated subjects, allowing the estimation of the average treatment effect (Austin, 2011). In this report, we will attempt to discover the potential causal relationship between a mandatory jail sentence for an initial drunk driving conviction and the traffic fatality rate of the state using the **propensity score matching** technique, followed by **mixed-effect ANOVA modeling**. The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates.        
 
-## 2.0 Analysis Plan
+#### 1.2 Questions of Interest   
 
-The primary objective of this analysis is to educate State legislators on whether a mandatory jail sentence is a proper current and will result in lower automobile fatality rates. From data collected by the National Highway Traffic Safety Administration's Fatal Accident Reporting Sys-tem (FARS), we plan to conduct a propensity score analysis to isolate the average causal effect of required jail time on automobile fatality rates.
+- Are there demographic features that correlate with a state's mandatory jail sentence law?     
+- Is a state's mandatory jail sentence law associated with its annual traffic fatality rate, without adjusting for potential covariating demographic variables?    
+- Is a state's mandatory jail sentence law associated with its annual traffic fatality rate, after adjusting for potential covariating demographic variables?    
+- Can we draw a causal conclusion regarding the relationship between a state's mandatory jail sentence law and its annual traffic fatality rate?     
+
+## 2.0 Analysis Plan    
+
+From data collected by the National Highway Traffic Safety Administration's FARS, we plan to conduct a propensity score analysis followed by mixed-effect ANOVA modeling to isolate the average effect of required jail time on automobile fatality rates.
 
 #### 2.1 Population and study design
-This analysis "uses data from the 48 contiguous states (excluding Alaska, Hawaii, and the District of Columbia)" between the years 1982 and 1988. Our response variable, Fatality Rate, is defined as the total number of automobile fatalities per Capita and is the primary measure of how effectively mandatory jail sentences reduce fatal automobile collisions across the United States. The full list of inlcuded variables can be viewed in Table 1, located in the appendix. 
 
-It is important to note that the data is purely observational. The observational nature of the data provides added challenges in our search for average causal effects. Since we have no control over when, or if, individual States implement a required jail sentence, we are left to parse out causal effects from a complex and intercorrelated dataset.
+The response variable used in this analysis is the yearly traffic fatality rate per 10,000 population. This statistic will be calculated by dividing a state's total traffic fatality count within a given year by its population of the year, multiplied by 10,000.
 
+The "Fatalities" dataset is a longitudinal dataset, also know as "panel dataset", with a "year” index that delineates the temporal order of entries. In a typical panel dataset, each individual has multiple entries, some of which correspond to pre-treatment records while others post-treatment. In this regard, the vehicle fatality dataset is atypical, because only six out of 48 states had pre- and post-treatment records (*Figure X*). Most states did not change their mandatory jail sentence policy between 1982 and 1988. Due to this limitation, common panel data analysis techniques are not applicable. In response, we will follow a bench-marked pipeline for analyzing non-panel observational data under a propensity score matching framework, while closely monitoring the behavior of the temperal variable throughout the analysis, and address any potential issues that might arise. 
 
 #### 2.2 Descriptive Analysis   
 
+#### 2.3 Propensity Score Analysis     
+##### 2.3.1 Propensity Score Estimation     
+
+We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence. There is a lack of consensus in the applied literature as to which variables to include in the propensity score model (Austin, 2001). Brookhart et al. (2006) suggested that for practical purposes, it is safe to include all potential confounding covariables in propensity score estimation. In this study, 14 independent variables were included in the logistic regression model to account for demographic characteristics that could potentially influence whether a state mandates such a jail sentence. These variables include year, population, gross state product (GSP), spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of Mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, and preliminary breath test upon initial drunk driving conviction.     
+
+The output of this model is the propensity score, which equals to the probability that a State has a mandatory jail sentence given the set of covariates. The logistic regression model we used to estimate the propensity score is as follows:
+
+$$
+log(\frac{\pi_i}{1-\pi_i}) = \beta_0 + \beta_1x_{i1} + ... + \beta_kx_{ik}, 
+$$
+Where $\pi_i = P(Z_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Z_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Z_i = 1$ when the state has mandatory jail sentence, and $Z_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 14, indicating the realized value of the 14 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$. 
+
+##### 2.3.2 Matching
+
+To match observations with mandatory jail sentences to observations without, we will use the nearest neighbor matching algorithm based upon propensity score.   
+
+##### 2.3.3 Examining covariate balance in the matched sample    
+
+We must assess the covariate balance in our matched treated and untreated sample sets to ensure a near-random distribution covriates within each set. We will perform visual inspections and t-tests to check for difference in means.
+
+##### 2.3.4 Estimate Treatment Effect
+
+To estimate the effect of mandatory jail sentences on a State's traffic fatality rate, we will fit the following linear regression relating the binary treatment variable to Fatality Rate:
+
+$$
+Y_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}
+$$
+for $i = 1, j \in [1, ..., 47],$ and $k \in [1, ..., 6]$.   
+
+Where $Y_{ijk}$ represents the yearly traffic fatality rate of a given State in a given year; $\alpha_i$ represents the fixed effect of mandatory jail sentence law; $\beta_j$ represents the random effect of State $j$, and $\epsilon_{ijk}$ the residuals.  
+
+The model is constrained such that 
 
 
-#### 2.3 Propensity Score Analysis
+#### 3.0
 
-##### 2.3.1 Generate the Propensity Score
+#####3.1 Causal Inferece Assumptions
 
-##### 2.3.2 Maching
+The legislative measures to reduce fatal collisions, such as mandatory jail sentences, are determined at the State level. A State legislature's decision to implement this treatment, is, however, based upon much of the information contained within our dataset, which creates a dependence between the treatment level and our other predictor variables. We can control for this dependence by making use of the covariates which affect the outcome and treatment selection by performing a propensity score matching procedure (Sasidharan, 2013).  
 
-##### 2.3.3 Estimate Treatment Effect
+To make causal inferences with propensity score analysis, we make the following assumptions:
+
+*1.* **Stable unit treatment value assumption (SUTVA)** (Rubin, 1990): This assumption states that the treatment applied to one entity does not affect the outcome of any other (i.e., no interference among the entities). In our case, it is challenging to make this assumption for two primary reasons. First, the fatality rates are likely correlated between states who share a geographic boundary. For example, the fatality rate of New York is likely highly correlated with New Jersy's as much of New Jersy's population commutes into New York, and vice-a-versa. Mediating this spatial correlation is outside the scope of this class, and we will continue under the assumption that the fatality rate of states is not geographically correlated with one another. Secondly, there is a likely correlation in a State's fatality rate across time. For example, we would expect California's 1982 fatality rate having a strong correlation with the 1983 rate. While we attempted to control for this correlation across time through a three-point moving average model. Applying this model to our data resulted in a 33% loss of data, since each state only has six observations. Given the time constraints of this project, we decided to ignore the correlations across time, and assume that the effect of time is independent across all observations. 
+
+While it is clear that our data fails to strictly meet the SUTVA assumptions for causal inference. To continue the project, we will satisfy this assumption by ignoring the effects of time and geographic proximity
+
+*2.* **Positivity**: This assumption requires that there be a non-zero probability of receiving every level of treatment for the combination of values of exposure and covariates that occur among entities in the population (Rubin, 1978). Since each state can pass legislation for and against mandatory jail sentences at any time, the probability of receiving both levels of the treatment is, in fact, positive. 
+
+*3.* **Unconfoundedness**: The treatment assignment mechanism is said to be unconfounded if the treatment status is conditionally independent of the potential outcomes, given a set of covariates (Rubin, 1990). This assumption is not satisfied by our original data since a clear dependence exists between a State's decision to implement mandatory jail sentences is based upon much of the data we plan to use in our analysis. However, through the use of propensity score matching, we can control for this since the propensity score is conditioned on all potential covariates (Rosenbaum, 1983).  
+
+*4.* **Observation of all Covariates**: This assumption, unique to propensity score, requires we observe all possible covariates in the assignment of a treatment (Rosenbaum, 1983). Unfortunately, with such a complex decision such as implementing a required jail sentence, it is impossible to assume that our data is a complete case of all covariates used in this decision. However, since we are limited with both the data and time at hand, we will make this assumption in order to continue the project. 
 
 
 
 
-
-
-#### 2.4 Model Diagnostics
-
-
-## 3.0 Results
+## 4.0 Results
 
 
 #### 3.1 Descriptive Analysis     
 
-#### 3.2 Main Analysis
+#### 3.2 Propensity Score Analysis
+
+##### 3.2.1 Propensity Score Estimation
+
+
+
+##### 3.2.2 Matching
+
+##### 3.2.3 Examining covariate balance in the matched sample 
+
+```{r}
+
+```
+
+
+##### 3.2.4 Estimate Treatment Effect
+
 
 #### 3.3 Model Diagnostics
 
@@ -103,15 +323,28 @@ It is important to note that the data is purely observational. The observational
 #### 3.4 Causal Effects
 
 
-
 ## 4.0 Discussion
+
+### Propensity Score Matching 
+
+### Causal Inference
+
+### Caveats of the study
+
 
 
 ## 5.0 Reference
+Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786
 
-```{r}
-fit <- lmer(data$fatalratio ~ data$jail + (1 | data$state) + data$spirits+ data$beertax + data$drinkage , data = data)
-summary(fit)
-```
+Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156.
 
+Durbin, D. R., Elliott, M. R., & Winston, F. K. (2009). A propensity score approach to estimating child restraint effectiveness in preventing mortality. Statistics and Its Interface, 2(4), 437–447. doi: 10.4310/sii.2009.v2.n4.a5
+
+Rodriguez, D., Rejesus, R., & Aragon, C. (2007). Impacts of an Agricultural Development Program for Poor Coconut Producers in the Philippines: An Approach Using Panel Data and Propensity Score Matching Techniques. Journal of Agricultural and Resource Economics, 32(3), 534-557. Retrieved February 14, 2020, from www.jstor.org/stable/40982695
+
+Rosenbaum, P., & Rubin, D. (1983). The Central Role of the Propensity Score in Observational Studies for Causal Effects. Biometrika, 70(1), 41-55. doi:10.2307/2335942
+
+Sasidharan, L., & Donnell, E. T. (2013). Application of propensity scores and potential outcomes to estimate effectiveness of traffic safety countermeasures: Exploratory analysis using intersection lighting data. Accident Analysis & Prevention, 50, 539–553. doi: 10.1016/j.aap.2012.05.036
+
+Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156. 
 
