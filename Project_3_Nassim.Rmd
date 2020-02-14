@@ -16,6 +16,7 @@ library(dplyr)
 library(ggplot2)
 library(lme4)
 library(car)
+library(influence.ME)
 ```
 
 ```{r}
@@ -63,7 +64,7 @@ dta_m = match.data(mod_match)
 
 # Model Diagnostics
 
-The two crucial assumptions for a mixed effect model are normally distributed residuals and constant variance of the residuals across the fitted values, which will be discussed below. 
+The two crucial assumptions for a mixed effect model are normally distributed residuals and constant variance of the residuals across the fitted values, which will be discussed below. Influential observations will also be discussed.
 
 
 ```{r, include = FALSE}
@@ -123,18 +124,31 @@ The p-value is essentially 0, and thus we reject the null hypothesis. Thus, ther
 The spread of the residuals seem to increase along the x-axis in the residuals-versus-fitted value scatter plot (Figure ..c), indicating unequal variance of the residuals across the fitted values. Thus, the equal variance assumption is not satisfied. 
 
 
+#### Influential Observations:
+
+
+```{r, include = FALSE}
+infl <- influence(fit2, obs=TRUE)
+```
+
+```{r, echo = FALSE, fig.align="center"}
+plot(infl, which = "cook")
+```
+
+Since the Cook's distance for every observation is less than 1, we conclude that there are no highly influential observations.
+
 
 ##### Response Variable Transformation:
 
-In an attempt to remedy the departures of the assumptions of the mixed effect model, we used a log transformation of the response variable, fr. After the transformation, we concluded that the distribution of the residuals did not follow a normal distribution after looking at a Normal Q-Q plot and performing a Shapiro-Wilk test. The residuals did seem to have more equal variance across the fitted values after the transformation. 
+In an attempt to remedy the departures of the assumptions of the mixed effect model, we used a log transformation of the response variable, fr. After the transformation, we concluded that the distribution of the residuals did not follow a normal distribution after looking at a Normal Q-Q plot and performing a Shapiro-Wilk test. The residuals did seem to have more equal variance across the fitted values after the transformation. Overall, a log transformation of the response variable did not remedy the departures of the assumptions of the mixed effect model. 
 
 ```{r, include = FALSE}
 fit3 <- lmer(log(fr) ~ jail + (1 | state), data = dta_m)
 ```
 
 ```{r, include = FALSE}
-qqnorm(residuals(fit3))
-qqline(residuals(fit3), col = "red")
+qqnorm(residuals(fit2, type="pearson"))
+qqline(residuals(fit2, type="pearson"), col = "red")
 ```
 
 ```{r, include = FALSE}
@@ -147,12 +161,8 @@ plot(fit3)
 ```
 
 ```{r, include = FALSE}
-shapiro.test(residuals(fit3))
+shapiro.test(residuals(fit3, type="pearson"))
 ```
-
-
-
-
 
 
 
