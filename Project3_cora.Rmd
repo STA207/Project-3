@@ -102,9 +102,22 @@ plot3 <- data %>%
 grid.arrange(plot1, arrangeGrob(plot2, plot3, ncol = 2), ncol = 1, heights = c(.4/4, .3/4))
 ```
 
+# Diagnostics for Propensity Score matching
+
+After the propensity score matching, we would check whether our propensity score model has been adequately specified using the following steps:
+
+(1) we would assess the standardized differences of each covariate between treatment groups. 
+(2) we would assess the distributions of propensity scores by treatment.
+(3) we would compare distributions of the covariates between treatments.
+
+## Result
+
+(1) The standardized differences of each covariate between treatment groups.
+
+Table \@ref(stdf) shows the standardized differences and 95% confidence interval for covariates. 
 
 ```{r}
-
+library(MatchIt)
 data$jail = ifelse(data$jail == 'yes', 1, 0)
 #data$service = ifelse(data$service == 'yes', 1, 0)
 #data$breath = ifelse(data$breath == 'yes', 1, 0)
@@ -114,58 +127,72 @@ data_cov = c("spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" ,
 mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
 
 dta_m = match.data(mod_match)
+```
 
-dta_m_mean = dta_m %>%
-  group_by(jail) %>%
-  summarise_all(funs(mean))
-dta_m_mean = dta_m_mean[,c('jail', data_cov)]
 
-par(mfrow = c(3,4))
-for (i in 1:length(data_cov)){
-  boxplot(dta_m[[data_cov[i]]]~dta_m$jail, xlab = "Jail", ylab = data_cov[i])
-}
-par(mfrow = c(1,1))
+```{r}
+#
+#data$jail = ifelse(data$jail == 'yes', 1, 0)
+##data$service = ifelse(data$service == 'yes', 1, 0)
+##data$breath = ifelse(data$breath == 'yes', 1, 0)
+#
+#data_cov = c("spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , #"pop" , "gsp")
+#
+#mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + #breath + pop + gsp, method = "nearest", data = data)
+#
+#dta_m = match.data(mod_match)
+#
+#dta_m_mean = dta_m %>%
+#  group_by(jail) %>%
+#  summarise_all(funs(mean))
+#dta_m_mean = dta_m_mean[,c('jail', data_cov)]
+
+#par(mfrow = c(3,4))
+#for (i in 1:length(data_cov)){
+#  boxplot(dta_m[[data_cov[i]]]~dta_m$jail, xlab = "Jail", ylab = data_cov[i])
+#}
+#par(mfrow = c(1,1))
 ```
 
 ```{r}
-library(MatchIt)
-
-data = Fatalities
-
-#Impute values for missing CA data
-data[28,15] = as.factor("no")
-data[28,16] = as.factor("no")
-
-data['fr'] = data$fatal/data$pop*10000
-data$jail = ifelse(data$jail == 'yes', 1, 0)
-data$service = ifelse(data$service == 'yes', 1, 0)
-data$breath = ifelse(data$breath == 'yes', 1, 0)
-
-m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, family = binomial(), data = data)
-summary(m_ps)
-
-data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "service" , "pop" , "gsp")
-
-mod_match = matchit(jail ~  spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath +  pop + gsp, method = "optimal", data = data)
-
-dta_m = match.data(mod_match)
-
-dta_m$year = as.numeric(dta_m$year)
-dta_yes = dta_m[dta_m$jail == 1,]
-dta_no = dta_m[dta_m$jail == 0,]
-
-Y = dta_yes$fr - dta_no$fr
-X_1 = dta_yes %>% 
-  select( "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" ,  "pop" , "gsp")
-X_0 = dta_no%>% 
-  select( "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" ,  "pop" , "gsp")
-X = X_1 - X_0
-X = as.matrix(X)
-
-summary(lm(Y~X))
-summary(lm(Y~X[,2:15]))
-
-# intercept -> ATE
+#library(MatchIt)
+#
+#data = Fatalities
+#
+##Impute values for missing CA data
+#data[28,15] = as.factor("no")
+#data[28,16] = as.factor("no")
+#
+#data['fr'] = data$fatal/data$pop*10000
+#data$jail = ifelse(data$jail == 'yes', 1, 0)
+#data$service = ifelse(data$service == 'yes', 1, 0)
+#data$breath = ifelse(data$breath == 'yes', 1, 0)
+#
+#m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + #service + pop + gsp, family = binomial(), data = data)
+#summary(m_ps)
+#
+#data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , #"miles" , "breath" , "service" , "pop" , "gsp")
+#
+#mod_match = matchit(jail ~  spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + #breath +  pop + gsp, method = "optimal", data = data)
+#
+#dta_m = match.data(mod_match)
+#
+#dta_m$year = as.numeric(dta_m$year)
+#dta_yes = dta_m[dta_m$jail == 1,]
+#dta_no = dta_m[dta_m$jail == 0,]
+#
+#Y = dta_yes$fr - dta_no$fr
+#X_1 = dta_yes %>% 
+#  select( "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , #"breath" ,  "pop" , "gsp")
+#X_0 = dta_no%>% 
+#  select( "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , #"breath" ,  "pop" , "gsp")
+#X = X_1 - X_0
+#X = as.matrix(X)
+#
+#summary(lm(Y~X))
+#summary(lm(Y~X[,2:15]))
+#
+## intercept -> ATE
 ```
 
 
