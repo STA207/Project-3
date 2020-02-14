@@ -72,3 +72,13 @@ knitr::kable(stdf[,c(1:4,7:9)], caption = "Standardized differences of covariate
 
 (2) Distributions of propensity scores by treatment.
 (3) Distributions of the covariates between treatments.
+
+Figure \@ref(fig:cov_bp) shows that distributions of the covariates are similar between treatments.
+```{r cov_bp, fig.cap="Distributions of the covariates "}
+par(mfrow = c(3,4))
+for (i in 1:length(data_cov)){
+  boxplot(dta_m[[data_cov[i]]]~dta_m$jail, xlab = "Jail", ylab = data_cov[i])
+}
+par(mfrow = c(1,1))
+```
+
