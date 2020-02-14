@@ -2,40 +2,28 @@
 title: "Project3"
 author: "Rongkui Han"
 date: "2/6/2020"
-output:
-  bookdown::pdf_document2:
-    toc: FALSE
+output: word_document
 ---
 
-## Propensity Score matching
-```{r}
+```{r, include = FALSE}
 library(MatchIt)
 library(dplyr)
 library(ggplot2)
 library(lme4)
+library(dagitty)
+library(ggdag)
+library(AER)
+library(pscl)
+library(gridExtra)
 ```
 
-```{r}
-library(AER)
+```{r, include = FALSE}
 data("Fatalities")
 data = Fatalities
-
-#Impute values for missing CA data
-
-#data[28,15] = as.factor("no")
-#data[28,16] = as.factor("no")
-
-
-#head(data)
-#dim(data)
 data['fr'] = data$fatal/data$pop*10000
 ```
 
-### Propensity score estimation    
-
-We estimate the propensity score by running a logit model (probit also works) where the outcome variable is a binary variable indicating treatment status. What covariates should you include? For the matching to give you a causal estimate in the end, you need to include any covariate that is related to **both the treatment assignment and potential outcomes**. I choose just a few covariates below—they are unlikely to capture all covariates that should be included. You’ll be asked to come up with a potentially better model on your own later.
-
-```{r}
+```{r, include = FALSE}
 dim(data)
 data = data[!is.na(data$jail),]
 data$jail = ifelse(data$jail == 'yes', 1, 0)
@@ -45,18 +33,23 @@ summary(m_ps)
 
 
 
-```{r}
+```{r, include = FALSE}
 prs_df = data.frame(pr_score = predict(m_ps, type = "response"),
                     jail = m_ps$model$jail)
-#head(prs_df)
-#dim(prs_df)
 ```
 
+```{r, include = FALSE}
+# logistic goodness of fit
+pR2(m_ps)
+```
+
+
+
+```{r, include = FALSE}
 #### Examining the region of common support
 
-After estimating the propensity score, it is useful to plot histograms of the estimated propensity scores by treatment status:    
+#After estimating the propensity score, it is useful to plot histograms of the estimated propensity scores by treatment status:    
 
-```{r}
 labs = paste("Actual jail law implemented:", c("Yes", "No"))
 prs_df %>%
   mutate(jail = ifelse(jail == 1, labs[1], labs[2])) %>%
@@ -67,13 +60,9 @@ prs_df %>%
   theme_bw()
 ```
 
-## Executing a matching algorithm     
 
-A simple method for estimating the treatment effect of Catholic schooling is to restrict the sample to observations within the region of common support, and then to divide the sample within the region of common support into 5 quintiles, based on the estimated propensity score. Within each of these 5 quintiles, we can then estimate the mean difference in student achievement by treatment status. Rubin and others have argued that this is sufficient to eliminate 95% of the bias due to confounding of treatment status with a covariate.
-
-However, most matching algorithms adopt slightly more complex methods. The method we use below is to find pairs of observations that have very similar propensity scores, but that differ in their treatment status. We use the package MatchIt for this. This package estimates the propensity score in the background and then matches observations based on the method of choice (“nearest” in this case).
-
-```{r}
+```{r, include = FALSE}
+## Executing a matching algorithm    
 data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "pop" , "gsp")
 
 mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
@@ -92,7 +81,7 @@ We’ll do three things to assess covariate balance in the matched sample:
 
 
 
-```{r}
+```{r, include = FALSE}
 fn_bal <- function(dta, variable) {
   dta$variable <- dta[, variable]
   dta$jail <- as.factor(dta$jail)
@@ -106,7 +95,6 @@ fn_bal <- function(dta, variable) {
     ylim(support)
 }
 
-library(gridExtra)
 grid.arrange(
    #fn_bal(dta_m, "year"),
    fn_bal(dta_m, "spirits"),
@@ -126,10 +114,9 @@ grid.arrange(
 )
 ```
 
-#### Difference-in-means
-The means below indicate that we have attained a high degree of balance on the five covariates included in the model.
 
-```{r}
+```{r, include = FALSE}
+#### Difference-in-means
 dta_m_mean = dta_m %>%
   group_by(jail) %>%
   summarise_all(funs(mean))
@@ -137,25 +124,16 @@ dta_m_mean = dta_m_mean[,c('jail', data_cov)]
 dta_m_mean
 ```
 
-```{r}
-
-```
-
-
+```{r, include = FALSE}
 ## Estimating treatment effects
-Estimating the treatment effect is simple once we have a matched sample that we are happy with. We can use a t-test:
-
-```{r}
 with(dta_m, t.test(fr ~ jail))
 ```
 
-```{r}
+```{r, include = FALSE}
 summary(data$fr)
 ```
 
-
-Or OLS:  
-```{r}
+```{r, include = FALSE}
 lm_treat1 <- lm(fr ~ jail, data = dta_m)
 summary(lm_treat1)
 confint(lm_treat1)
@@ -180,13 +158,7 @@ mean(data$fr[data$jail == 1]) - mean(data$fr[data$jail == 0])
 ```
 
 
-```{r}
-plot(dta_m$year)
-plot(data$year)
-```
-
-
-```{r}
+```{r, include = FALSE}
 #What about if we inlcude state in the linear regression model
 
 #Fixed
@@ -196,9 +168,13 @@ summary(fit1)
 #Random
 fit2 <- lmer(fr ~ jail + (1 | state), data = dta_m)
 summary(fit2)
-
+anova(fit2)
+df = as.data.frame(coef(fit2)$state)
+df
+names(df) = c('a','j')
+df$a = df$a - 1.99462
+hist(df$a)
 ```
-
 
 ***
 
@@ -235,7 +211,7 @@ From data collected by the National Highway Traffic Safety Administration's FARS
 
 The response variable used in this analysis is the yearly traffic fatality rate per 10,000 population. This statistic will be calculated by dividing a state's total traffic fatality count within a given year by its population of the year, multiplied by 10,000.
 
-The "Fatalities" dataset is a longitudinal dataset, also know as "panel dataset", with a "year” index that delineates the temporal order of entries. In a typical panel dataset, each individual has multiple entries, some of which correspond to pre-treatment records while others post-treatment. In this regard, the vehicle fatality dataset is atypical, because only six out of 48 states had pre- and post-treatment records (*Figure X*). Most states did not change their mandatory jail sentence policy between 1982 and 1988. Due to this limitation, common panel data analysis techniques are not applicable. In response, we will follow a bench-marked pipeline for analyzing non-panel observational data under a propensity score matching framework, while closely monitoring the behavior of the temperal variable throughout the analysis, and address any potential issues that might arise. 
+The "Fatalities" dataset is a longitudinal dataset, also know as "panel dataset", with a "year” index that delineates the temporal order of entries. In a typical panel dataset, each individual has multiple entries, some of which correspond to pre-treatment records while others post-treatment. In this regard, the vehicle fatality dataset is atypical, because only six out of 48 states had pre- and post-treatment records (*Figure X*). Most states did not change their mandatory jail sentence policy between 1982 and 1988. Due to this limitation, common panel data analysis techniques are not applicable. In response, we will follow a bench-marked pipeline for analyzing non-panel observational data under a propensity score matching framework (Smith, 1997), while closely monitoring the behavior of the temperal variable throughout the analysis, and address any potential issues that might arise. 
 
 #### 2.2 Descriptive Analysis   
 
@@ -250,6 +226,11 @@ $$
 log(\frac{\pi_i}{1-\pi_i}) = \beta_0 + \beta_1x_{i1} + ... + \beta_kx_{ik}, 
 $$
 Where $\pi_i = P(Z_i = 1 | \overrightarrow{X_i} = \overrightarrow{x_i})$, $Z_i$ is the indicator variable for mandatory jail sentence upon initial drunk driving conviction. $Z_i = 1$ when the state has mandatory jail sentence, and $Z_i = 0$ other wise. $\overrightarrow{X_i}$ is a vector of length 14, indicating the realized value of the 14 independent variables of the i-th subject in the logistic regression model. $k = 1, ..., 15, i = 1,...,336$. 
+
+```{r}
+
+```
+
 
 ##### 2.3.2 Matching
 
@@ -266,55 +247,126 @@ To estimate the effect of mandatory jail sentences on a State's traffic fatality
 $$
 Y_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}
 $$
-for $i = 1, j \in [1, ..., 47],$ and $k \in [1, ..., 6]$.   
+for $i \in [0, 1] 1, j \in [1, ..., 48],$ and $k \in [1, ..., 7]$.   
 
-Where $Y_{ijk}$ represents the yearly traffic fatality rate of a given State in a given year; $\alpha_i$ represents the fixed effect of mandatory jail sentence law; $\beta_j$ represents the random effect of State $j$, and $\epsilon_{ijk}$ the residuals.  
+Where     
+- $Y_{ijk}$ represents the yearly traffic fatality rate of a given State in a given year.      
+- $\mu$ represents the overall sample mean of yearly traffic fatality rates.    
+- $\alpha_i$ represents the fixed effect of mandatory jail sentence law. $i = 1$ when the state has mandatory jail sentence, and $i = 0$ other wise.       
+- $\beta_j$ represents the random effect of State $j$, and    
+- $\epsilon_{ijk}$ the residuals.     
 
-The model is constrained such that 
+The model is constrained such that $\displaystyle\sum\limits_{i = 0, 1}\alpha_i = 0$, $\beta_j \overset{\text{iid}}\sim N(0, \sigma^2_b)$, and $\epsilon_i \overset{\text{iid}}\sim N(0, \sigma^2_b)$.    
 
-#### 2.4 Model Diagnostics
+#### 2.4 Model Diagnostics     
 
+We will use Q-Q plot, histogram and the Shapiro-Wilk test inspect the normality of residuals. A scatter plot and a fitted-value-versus-residual scatter plot and the Levene test will be used to examine equality of residual variance. Independence of residuals and outlying data points will also be discussed.      
 
-## 3.0 Results
-
+## 3.0 Results    
 
 #### 3.1 Descriptive Analysis     
 
-#### 3.2 Propensity Score Analysis
+#### 3.2 Propensity Score Analysis    
 
 ##### 3.2.1 Propensity Score Estimation
 
+A logistic regression model was fit to estimate propensity score for matching treated and untreated samples. Distribution of the estimated propensity scores are displayed in *Figure Y*.    
 
-
-##### 3.2.2 Matching
-
-##### 3.2.3 Examining covariate balance in the matched sample 
-
+*Figure T*: Distribution of quantitative dependent variables by propensity score:     
 ```{r}
+fn_bal <- function(dta, variable) {
+  dta$variable <- dta[, variable]
+  dta$jail <- as.factor(dta$jail)
+  support <- c(min(dta$variable), max(dta$variable))
+  ggplot(dta, aes(x = distance, y = variable, color = jail)) +
+    geom_point(alpha = 0.2, size = 1.3) +
+    geom_smooth(method = "loess", se = F) +
+    xlab("Propensity score") +
+    ylab(variable) +
+    theme_bw() +
+    ylim(support)
+}
 
+grid.arrange(
+   #fn_bal(dta_m, "year"),
+   fn_bal(dta_m, "spirits"),
+   fn_bal(dta_m, "unemp"),
+   fn_bal(dta_m, "income"), #+ theme(legend.position = "none"),
+   fn_bal(dta_m, "beertax"),
+   #fn_bal(dta_m, "baptist"),
+   #fn_bal(dta_m, "mormon"),
+   fn_bal(dta_m, "drinkage"),
+   fn_bal(dta_m, "dry"),
+   fn_bal(dta_m, "youngdrivers"),
+   fn_bal(dta_m, "miles"),
+   #fn_bal(dta_m, "breath"),
+   fn_bal(dta_m, "pop"),
+   fn_bal(dta_m, "gsp"),
+   nrow = 4#, widths = c(1, 0.8)
+)
 ```
 
 
-##### 3.2.4 Estimate Treatment Effect
+*Figure Y*: Propensity score distribution across two treatment groups
+```{r}
+prs_df %>%
+  mutate(jail = ifelse(jail == 1, labs[1], labs[2])) %>%
+  ggplot(aes(x = pr_score)) +
+  geom_histogram(color = "white", bins = 30) +
+  facet_wrap(~jail) +
+  xlab("Propensity score: probability of implementing mandatory jail sentence") +
+  theme_bw()
+```
 
+##### 3.2.2 Matching    
+
+Nearest neighbor matching algorithm resulted in a new dataset of 188 entires, with 94 original entries with mandatory jail sentence matched with their respective non-treated entry with the most similar propensity score.   
+
+##### 3.2.3 Examining covariate balance in the matched sample 
+
+##### 3.2.4 Estimate Treatment Effect
 
 #### 3.3 Model Diagnostics
 
+##### 3.3.1 Goodness-of-fit of logistic regression model    
 
-#### 3.4 Causal Effects
+Unlike linear regression with ordinary least squares estimation, there is no $R^2$ statistic which explains the proportion of variance in the dependent variable that is explained by the predictors. The most notable pseudo $R^2$ metric commonly used for assessing goodness-of-fit in logistic regression is McFadden’s $R^2$, which is defined as $1−\frac{log(L_M)}{log(L_0)}$ where $log(L_M)$ is the log likelihood value for the fitted model and $log(L_0)$ is the log likelihood for the null model with only an intercept as a predictor. The propensity-score-generating logistic regression model used in this study has a McFadden's $R^2$ of 0.39, indicating effective removal of a large portion of confounded samples through the propensity score matching process. 
+
+##### 3.3.2 Mixed Effect model     
 
 
 ## 4.0 Discussion
 
-### Propensity Score Matching 
+### Propensity Score Matching    
+
+In this report, we highlight the usage of propensity score matching for isolating average treatment effect of implementing mandatory jail sentence upon initial conviction of driving under influence. Rosenbaum and Rubin (1983) defined treatment assignment to be strongly ignorable if the following two conditions hold: (a) treatment assignment is independent of the potential outcomes conditional on the observed baseline covariates, and (b) every subject has a nonzero probability to receive either treatment. They demonstrated that if treatment assignment is strongly ignorable, conditioning on the propensity score allows one to obtain unbiased estimates of average treatment effects. We achieved these conditions through propensity score matching.   
 
 ### Causal Inference
 
-### Caveats of the study
+We cannot confidently draw causal conclusions using the result from this analysis. This is because of the violation of these assumptions necessary for causal inference:    
 
+1. The stable unit treatment value assumption (SUTVA):    
+SUTVA states that the treatment assignment of one experimental unit cannot interfere with the outcome of a separate experimental unit. This is violated in this dataset because     
+1. temporal correlations across records taken from the same State, and 
+2. spacial correlations among states that are geographically close to each other.   
+The implementation of mandatory jail sentence in one state is very likely to influence the vehicle fatality of an adjacent state. And the historic state of the legislation is very likely to influence the vehicle fatality of the same state in the years to come.   
 
+2. Exogeneity:
+The exogeneity assumption states that the independent variable (implementation of mandatory jail sentence) cannot be dependent on the dependent variable (vehicle fatality rate). This assumption is likely to be violated in this dataset because legislations can arise from existing conditions (*Figure Za*).  
+
+3. Ignorabilty of unobserved potential confounding variables:
+Although this expansive dataset captures many prominent variables that are associated with vehicle fatality rate, many more economic and social factors come into play in impacting the interactions between the implementation of mandatory jail sentence and vehicle fatality rate. We cannot confidently exclude the possiblity of the existence of many of such variables (*Figure Zb*).
+
+*Figure Z: directed acyclic graphs of scenarios where direction of causal inference changes. a. Violation of exogeneity. b. Violation of ignorability of unobserved confounding variables. M: mandatory jail sentence; F: vehicle fatality rate; UC: unobserved confounding variable*     
+```{r}
+dag1 = dagitty("dag{ F -> M }")
+dag2= dagitty("dag{ M <- UC -> F }")
+grid.arrange(ggdag(dag1), ggdag(dag2), nrow = 1)
+```
 
 ## 5.0 Reference
-Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786
-Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156. 
+Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing the Effects of Confounding in Observational Studies. Multivariate behavioral research, 46(3), 399–424. doi:10.1080/00273171.2011.568786    
+Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156.  
+Rosenbaum P.R., Rubin D.B. (1983). The central role of the propensity score in observational studies for causal effects. Biometrika. 70:41–55.
+Smith, H. L. (1997). 6. Matching with Multiple Controls to Estimate Treatment Effects in Observational Studies. Sociological methodology, 27(1), 325-353.   
 
