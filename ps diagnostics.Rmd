@@ -1,0 +1,74 @@
+---
+title: "Project3"
+output:
+  bookdown::pdf_document2:
+    toc: no
+---
+
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 18px;
+  }
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
+```
+
+# Diagnostics for Propensity Score matching
+
+After the propensity score matching, we would check whether our propensity score model has been adequately specified using the following steps:
+
+(1) we would assess the standardized differences of each covariate between treatment groups. 
+(2) we would assess the distributions of propensity scores by treatment.
+(3) we would compare distributions of the covariates between treatments.
+
+## Result
+
+(1) The standardized differences of each covariate between treatment groups.
+
+Table \@ref(tab:stdf) shows the results of standardized differences and the 95% confidence interval for covariates. It can be seen that all the confidence intervals include 0, we are 95% confidence that there is no differences between treatment groups for covariates.  
+
+```{r}
+library("AER")
+library(tidyverse)
+data(Fatalities)
+
+library("directlabels")
+library(gridExtra)
+
+data = Fatalities %>% 
+  mutate(fatal_rate = fatal/pop*10000)
+
+state_1 <- c('ca', 'ct', 'nv', 'oh', 'or', 'sc', 'ut')
+
+#data[data$state == "ca" & data$year == "1988",]$jail = "no"
+data <- data %>% drop_na()
+
+library(MatchIt)
+data$jail = ifelse(data$jail == 'yes', 1, 0)
+#data$service = ifelse(data$service == 'yes', 1, 0)
+#data$breath = ifelse(data$breath == 'yes', 1, 0)
+
+data_cov = c("spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "pop" , "gsp")
+
+mod_match = matchit(jail ~  spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
+
+dta_m = match.data(mod_match)
+```
+
+```{r stdf}
+library(stddiff)
+library(cobalt)
+
+#bal.tab(mod_match, m.threshold = .1)
+stdf <- stddiff.numeric(dta_m, 15, c(3:13, 27, 34))
+colnames(stdf) <- c("Mean(jail = 0)","Sd(jail = 0)","Mean(jail = 1)","Sd(jail = 1)","missing.c","missing.t", "Standardized difference",  "Lower bound", "Upper bound")
+stdf <- stdf %>% as.tibble()
+knitr::kable(stdf[,c(1:4,7:9)], caption = "Standardized differences of covariates between treatment groups.")
+```
+
+(2) Distributions of propensity scores by treatment.
+(3) Distributions of the covariates between treatments.
