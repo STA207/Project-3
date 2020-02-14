@@ -341,6 +341,10 @@ After propensity score matching, we plan to construct a mixed linear model to ca
 
 ### Causal Inference
 
+Ultimately, our analysis makes very improbable assumptions in order to analyze this observational data. Due to this lack of strong assumptions around SUTVA and observation of all covariates, we fail to make any strong causal conclusions regarding the effect of mandatory jail sentences on State fatality rates.
+
+Due to this lack of clear causality, we propose State legislators focus their energy and capital on measures directly correlated with the probability of entering a fatal collision. Better seatbelt enforcement, speeding enforcement, and drunk driver intervention have all demonstrated their effectiveness at better-protecting citizens and reducing the risk of a fatal accident (Morley, 2016). Legislators should focus on active measures to combat fatal automobile collisions instead of hoping to find a strong causal effect in passive measures like mandatory jail sentencing.
+
 ### Caveats of the study
 
 
@@ -351,6 +355,8 @@ Austin P. C. (2011). An Introduction to Propensity Score Methods for Reducing th
 Brookhart M.A., Schneeweiss S., Rothman K.J., Glynn R.J., Avorn J., Stürmer T. (2006). Variable selection for propensity score models. American Journal of Epidemiology. 163, 1149–1156.
 
 Durbin, D. R., Elliott, M. R., & Winston, F. K. (2009). A propensity score approach to estimating child restraint effectiveness in preventing mortality. Statistics and Its Interface, 2(4), 437–447. doi: 10.4310/sii.2009.v2.n4.a5
+
+Morley, A., Morris, A., Abi Semaan, M., & Hancox, G. (2016). A Guide for Policy Makers: On Reducing Road Fatalities. Retrieved from https://www.pwc.com/m1/en/publications/guide-on-reducing-road-fatalities.html
 
 Rodriguez, D., Rejesus, R., & Aragon, C. (2007). Impacts of an Agricultural Development Program for Poor Coconut Producers in the Philippines: An Approach Using Panel Data and Propensity Score Matching Techniques. Journal of Agricultural and Resource Economics, 32(3), 534-557. Retrieved February 14, 2020, from www.jstor.org/stable/40982695
 
