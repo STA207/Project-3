@@ -283,7 +283,7 @@ To make causal inferences with propensity score analysis, we make the following 
 
 *1.* **Stable unit treatment value assumption (SUTVA)** (Rubin, 1990): This assumption states that the treatment applied to one entity does not affect the outcome of any other (i.e., no interference among the entities). In our case, it is challenging to make this assumption for two primary reasons. First, the fatality rates are likely correlated between states who share a geographic boundary. For example, the fatality rate of New York is likely highly correlated with New Jersy's as much of New Jersy's population commutes into New York, and vice-a-versa. Mediating this spatial correlation is outside the scope of this class, and we will continue under the assumption that the fatality rate of states is not geographically correlated with one another. Secondly, there is a likely correlation in a State's fatality rate across time. For example, we would expect California's 1982 fatality rate having a strong correlation with the 1983 rate. While we attempted to control for this correlation across time through a three-point moving average model. Applying this model to our data resulted in a 33% loss of data, since each state only has six observations. Given the time constraints of this project, we decided to ignore the correlations across time, and assume that the effect of time is independent across all observations. 
 
-While it is clear that our data fails to strictly meet the SUTVA assumptions for causal inference. To continue the project, we will satisfy this assumption by ignoring the effects of time and geographic proximity
+While it is clear that our data fails to strictly meet the SUTVA assumptions for causal inference. To continue the project, we will satisfy this assumption by ignoring the effects of time and geographic proximity.
 
 *2.* **Positivity**: This assumption requires that there be a non-zero probability of receiving every level of treatment for the combination of values of exposure and covariates that occur among entities in the population (Rubin, 1978). Since each state can pass legislation for and against mandatory jail sentences at any time, the probability of receiving both levels of the treatment is, in fact, positive. 
 
@@ -296,13 +296,13 @@ While it is clear that our data fails to strictly meet the SUTVA assumptions for
 
 After propensity score matching, we plan to construct a mixed linear model to capture the average causal effect of mandatory jail sentences while accounting for the random effect due to each individual state. To use this type of model, the following assumptions must be satisfied.
 
-*1.* **Normality & Equal Variance**: The model residuals approximately follow a $Normal(0,\sigma^2)$ distribution
+*1.* **Normality & Equal Variance**: The model residuals approximately follow a $Normal(0,\sigma^2)$ distribution.
 
 *2.* **Independence**: The model residuals follow no detectable pattern and appear to unrelated to one another.  
 
 *3.* **Outliers**: The data does not contain any major outliers.
 
-*4.* **State Effect**: The effect due to each state follows a $Normal(0,\sigma_{\alpha}^2)$ distribution
+*4.* **State Effect**: The effect due to each state follows a $Normal(0,\sigma_{\alpha}^2)$ distribution.
 
 
 
