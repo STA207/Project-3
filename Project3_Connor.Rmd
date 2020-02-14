@@ -292,6 +292,18 @@ While it is clear that our data fails to strictly meet the SUTVA assumptions for
 *4.* **Observation of all Covariates**: This assumption, unique to propensity score, requires we observe all possible covariates in the assignment of a treatment (Rosenbaum, 1983). Unfortunately, with such a complex decision such as implementing a required jail sentence, it is impossible to assume that our data is a complete case of all covariates used in this decision. However, since we are limited with both the data and time at hand, we will make this assumption in order to continue the project. 
 
 
+#####3.1 Mixed Linear Models Assumptions
+
+After propensity score matching, we plan to construct a mixed linear model to capture the average causal effect of mandatory jail sentences while accounting for the random effect due to each individual state. To use this type of model, the following assumptions must be satisfied.
+
+*1.* **Normality & Equal Variance**: The model residuals approximately follow a $Normal(0,\sigma^2)$ distribution
+
+*2.* **Independence**: The model residuals follow no detectable pattern and appear to unrelated to one another.  
+
+*3.* **Outliers**: The data does not contain any major outliers.
+
+*4.* **State Effect**: The effect due to each state follows a $Normal(0,\sigma_{\alpha}^2)$ distribution
+
 
 
 ## 4.0 Results
