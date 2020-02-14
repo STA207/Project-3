@@ -36,7 +36,7 @@ We estimate the propensity score by running a logit model (probit also works) wh
 
 ```{r}
 data$jail = ifelse(data$jail == 'yes', 1, 0)
-m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, family = binomial(), data = data)
+m_ps = glm(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, family = binomial(), data = data)
 summary(m_ps)
 ```
 
@@ -71,9 +71,9 @@ A simple method for estimating the treatment effect of Catholic schooling is to 
 However, most matching algorithms adopt slightly more complex methods. The method we use below is to find pairs of observations that have very similar propensity scores, but that differ in their treatment status. We use the package MatchIt for this. This package estimates the propensity score in the background and then matches observations based on the method of choice (“nearest” in this case).
 
 ```{r}
-data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "service" , "pop" , "gsp")
+data_cov = c("year", "spirits" , "unemp" , "income" , "beertax" , "baptist" , "mormon" , "drinkage" , "dry" , "youngdrivers" , "miles" , "breath" , "pop" , "gsp")
 
-mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + service + pop + gsp, method = "nearest", data = data)
+mod_match = matchit(jail ~ year + spirits + unemp + income + beertax + baptist + mormon + drinkage + dry + youngdrivers + miles + breath + pop + gsp, method = "nearest", data = data)
 
 dta_m = match.data(mod_match)
 #dim(dta_m)
@@ -117,7 +117,6 @@ grid.arrange(
    fn_bal(dta_m, "youngdrivers"),
    fn_bal(dta_m, "miles"),
    #fn_bal(dta_m, "breath"),
-   #fn_bal(dta_m, "service"),
    fn_bal(dta_m, "pop"),
    fn_bal(dta_m, "gsp"),
    nrow = 4#, widths = c(1, 0.8)
@@ -244,7 +243,7 @@ spaghetti plot
 
 ##### 2.3.1 Propensity Score Estimation
 
-We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence; the 15 independent variables of the logistic regression model are demographic variables that could potentially influence whether a state mandates such a jail sentence. These variables include year, population, GSP, spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of Mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, preliminary breath test, and mandatory community service upon initial drunk driving conviction. 
+We will estimate the propensity score through a logistic regression model. The dependent variable of the logistic regression model is a binary variable indicating treatment status, whether or not a State has a mandatory jail sentence; the 15 independent variables of the logistic regression model are demographic variables that could potentially influence whether a state mandates such a jail sentence. These variables include year, population, GSP, spirits consumption, unemployment rate, per capita income, tax on a case of beer, percentage of baptists, percentage of Mormons, minimum drinking age, percent residing in dry counties, percentage of drivers younger than 24, average miles per driver, and preliminary breath test upon initial drunk driving conviction. 
 
 The output of this model is the propensity score, which equals to the probability that a State has a mandatory jail sentence given our set of covariates. The logistic regression model we used to estimate the propensity score is as follows:
 
